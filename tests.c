@@ -12,17 +12,17 @@
 #include <string.h>
 #include "tests/minunit.h"
 #include "tests/lwe_oracle_test.h"
+#include "tests/bkw_test.h"
 #include "src/math.h"
 
-#define SUITES_NUMBER 1
+#define SUITES_NUMBER 2
 #define MAX_NAMETAG_LEN 128
 
 /* array that regroups test functions to execute */
-char * (*tests[SUITES_NUMBER])() = { lwe_oracle_all_tests };
+char * (*tests[SUITES_NUMBER])() = { lwe_oracle_all_tests, bkw_all_tests };
 
 /* tags for specific execution */
-char * tests_nametag[SUITES_NUMBER] = { LWE_ORACLE_TEST_NAME };
-
+char * tests_nametag[SUITES_NUMBER] = { LWE_ORACLE_TEST_NAME, BKW_TEST_NAME };
 
 int tests_run = 0;
 
