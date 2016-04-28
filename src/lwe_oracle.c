@@ -7,12 +7,14 @@
 
 #include "lwe_oracle.h"
 #include "math.h"
-#include <stdio.h>
 
-int lwe_oracle(math_t * res, long * s, int n, long q, double sigma) {
+long * secret;
+double sigma;
+
+int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig) {
     size_t i;
 
-    res[n].value = 0;
+    res[n].value = NOISE_FUNCTION(sig);
     for (i = 0; i < n; ++i) {
 
         #ifdef _WIN32
@@ -27,7 +29,10 @@ int lwe_oracle(math_t * res, long * s, int n, long q, double sigma) {
         res[i].value %= q;
         res[n].value += (res[i].value * s[i]) % q;
     }
-    res[n].value = (res[n].value + NOISE_FUNCTION(sigma)) % q;
 
     return 1; /* true */
+}
+
+int lwe_oracle(math_t * res, int n, long q) {
+    return lwe_oracle_predef(res, secret, n, q, sigma);
 }

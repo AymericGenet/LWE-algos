@@ -13,7 +13,7 @@
 
 #ifdef _WIN32
 
-HCRYPTPROV hCryptProv = NULL;
+HCRYPTPROV hCryptProv;
 
 int win32_init() {
     if (!CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, 0)) {
@@ -58,4 +58,27 @@ long uniform(double sigma) {
     /* TODO: ifdef unix */
 
     return ((signed long) tmp.value) % beta;
+}
+
+size_t index(math_t * elem, long q, int a, int b) {
+    size_t i, idx;
+    long basis;
+
+    idx = 0;
+    basis = 1;
+    for (i = a; i < b; ++i) {
+        idx += basis*elem[i].value;
+        basis *= q;
+    }
+    return idx;
+}
+
+int zero(math_t * elem, int a, int b) {
+    size_t i;
+    for (i = a; i < b; ++i) {
+        if (elem[i].value != 0) {
+            return 0; /* false */
+        }
+    }
+    return 1;
 }

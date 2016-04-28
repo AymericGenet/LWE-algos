@@ -1,5 +1,5 @@
 /*
- * lwe_oracle_test.c : Unit tests for LWE oracle.
+ * lwe_oracle_test.h : Unit tests for the LWE oracle.
  *
  *  Created on: Apr 26, 2016
  *      Author: Aymeric Genet
@@ -11,6 +11,8 @@
 /*
  *  Tests lwe_oracle.lwe_oracle_predef()
  */
+
+char * test_lwe_oracle_predef();
 
 char * test_lwe_oracle();
 

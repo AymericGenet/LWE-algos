@@ -74,4 +74,8 @@ long rounded_gaussian(double sigma);
 
 long uniform(double sigma);
 
+size_t index(math_t * elem, long q, int a, int b); 
+
+int zero(math_t * elem, int a, int b);
+
 #endif /* MATHS_H_ */

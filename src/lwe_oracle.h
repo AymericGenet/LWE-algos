@@ -13,12 +13,17 @@
 
 #include "math.h"
 
+extern long * secret;
+extern double sigma;
+
 /*
  * Takes secret s and puts in res an array containing the pair (a, c) such that
  * a is uniformly in Z_q^n, and c = <a, s> + e where e follows a distribution D.
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
 */
 
-int lwe_oracle(math_t * res, long * s, int n, long q, double sigma);
+int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig);
+
+int lwe_oracle(math_t * res, int n, long q);
 
 #endif /* LWE_ORACLE_H_ */
