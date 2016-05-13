@@ -24,3 +24,10 @@ int bkw_algo(math_t * res, int n, int b, int l);
 
 int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
             math_t ** aux);
+
+/*
+ *
+ */
+
+int bkw_hypo_testing(math_t ** S, math_t ** F, int d, int m, long q,
+                     math_t ** aux);

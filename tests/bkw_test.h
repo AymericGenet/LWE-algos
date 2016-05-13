@@ -11,6 +11,8 @@
 
 char * test_bkw_lf1();
 
+char * test_bkw_hypo_testing();
+
 /*
  *  Gathers all tests in one function.
  */
