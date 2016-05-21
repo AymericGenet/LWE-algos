@@ -32,9 +32,12 @@ char * test_lwe_oracle_predef() {
     lwe_oracle_predef(pair, s, n, q, sig);
     printf("\n");
     for (i = 0; i < n; ++i) {
-        printf("\ta[%i] = %lu\n", i, pair[i]);
+        printf("\ta[%i] = %lu\n", i, pair[i].value);
     }
-    printf("\tc = %lu\n", pair[n]);
+    printf("\tc = %lu\n", pair[n].value);
+
+    free(pair);
+    free(s);
 
     return NULL;
 }
@@ -57,9 +60,12 @@ char * test_lwe_oracle() {
     lwe_oracle_predef(pair, secret, n, q, sigma);
     printf("\n");
     for (i = 0; i < n; ++i) {
-        printf("\ta[%i] = %lu\n", i, pair[i]);
+        printf("\ta[%i] = %lu\n", i, pair[i].value);
     }
-    printf("\tc = %lu\n", pair[n]);
+    printf("\tc = %lu\n", pair[n].value);
+
+    free(pair);
+    free(secret);
 
     return NULL;
 }

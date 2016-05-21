@@ -14,20 +14,12 @@ double sigma;
 int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig) {
     size_t i;
 
-    res[n].value = NOISE_FUNCTION(sig);
+    res[n].value = rounded_gaussian(sig, q);
     for (i = 0; i < n; ++i) {
-
-        #ifdef _WIN32
-        /* gathers random data */
-        if (!CryptGenRandom(hCryptProv, 4, res[i].bytes)) {
-             return 0; /* false */
-        }
-        #endif /* _WIN32 */
-
-        /* TODO: ifdef unix */
+        read_random(res + i);
 
         res[i].value %= q;
-        res[n].value += (res[i].value * s[i]) % q;
+        res[n].value = (res[n].value + res[i].value * s[i]) % q;
     }
 
     return 1; /* true */

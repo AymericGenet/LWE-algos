@@ -21,9 +21,10 @@ char * test_bkw_lf1() {
     math_t ** aux;
     math_t *** T;
 
+    /* init  */
     n = 9, q = 97, b = 3;
     a = n/b;
-    depth = 2*456336; /* (q^b - 1)/2 */
+    depth = 2*456336; /* 2*(q^b - 1)/2 */
 
     secret = malloc(n * sizeof(long));
     secret[0] = 1;
@@ -50,72 +51,142 @@ char * test_bkw_lf1() {
         }
     }
 
+    /* draws a sample when l = 0 */
     bkw_lf1(res, n, q, b, 0, T, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %i\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 
     printf("\n");
 
+    /* draws a sample when l = 1 */
     bkw_lf1(res, n, q, b, 1, T, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %i\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 
     printf("\n");
 
+    /* draws a sample when l = 2 */
     bkw_lf1(res, n, q, b, 2, T, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %i\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i].value);
     }
+
+    /* frees memory */
+    for (i = 0; i < a; ++i) {
+        free(aux[i]);
+        for (j = 0; j < depth; ++j) {
+            free(T[i][j]);
+        }
+        free(T[i]);
+    }
+
+    free(aux);
+    free(T);
+    free(res);
+    free(secret);
 
     return NULL;
 }
 
 char * test_bkw_hypo_testing() {
-    size_t i, j;
+    size_t i, j, k;
     int d, m;
     long q, depth;
     math_t ** aux;
-    math_t ** S;
     math_t ** F;
+    double ** S;
+    double best, sum;
 
-    m = 2, q = 5, d = 4;
+    /* init */
+    sigma = 1;
+    m = 5, q = 5, d = 4;
     depth = 125; /* q^(d - 1) */
 
-    S = malloc(m * sizeof(math_t *));
-    aux = malloc(m * sizeof(math_t *));
+    S = malloc(m * sizeof(double *));
+    aux = malloc(2 * sizeof(math_t *));
     F = malloc(m * sizeof(math_t *));
 
     for (i = 0; i < m; ++i) {
-        S[i] = malloc(depth * sizeof(math_t));
-        aux[i] = malloc(d * sizeof(math_t));
+        S[i] = malloc(depth * sizeof(double));
         F[i] = malloc(d * sizeof(math_t));
-        for (j = 0; j < d; ++j) {
-            aux[i][j].value = 0;
+        for (j = 0; j < depth; ++j) {
+            S[i][j] = 0.0;
         }
     }
 
-    F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3; F[0][3].value = 4;
-    F[1][0].value = 4; F[1][1].value = 3; F[1][2].value = 2; F[1][3].value = 1;
-/*    F[2][0].value = 9; F[2][1].value = 10; F[2][2].value = 11; F[2][3].value = 12;
-    F[3][0].value = 13; F[3][1].value = 14; F[3][2].value = 15; F[3][3].value = 16;
-    F[4][0].value = 17; F[4][1].value = 18; F[4][2].value = 19; F[4][3].value = 20;*/
+    aux[0] = malloc(m * sizeof(math_t));
+    aux[1] = malloc((d - 1) * sizeof(math_t));
+    for (j = 0; j < d - 1; ++j) {
+        aux[1][j].value = 0;
+    }
 
-    bkw_hypo_testing(S, F, d, m, q, aux);
+    /* samples */
+    F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3;
+    F[0][3].value = (1*1 + 2*2 + 3*3) % q; /* c_0 */
 
-    printf("Done ! \n");
+    F[1][0].value = 4; F[1][1].value = 3; F[1][2].value = 2;
+    F[1][3].value = (4*1 + 3*2 + 2*3) % q; /* c_1 */
 
-    for (i = 0; i < depth; ++i) {
-        printf("[ ");
+    F[2][0].value = 2; F[2][1].value = 3; F[2][2].value = 4;
+    F[2][3].value = (2*1 + 3*2 + 4*3) % q; /* c_2 */
+
+    F[3][0].value = 1; F[3][1].value = 4; F[3][2].value = 2;
+    F[3][3].value = (1*1 + 4*2 + 2*3) % q; /* c_3 */
+
+    F[4][0].value = 3; F[4][1].value = 3; F[4][2].value = 4;
+    F[4][3].value = (3*1 + 3*2 + 4*3) % q; /* c_4 */
+
+    /* runs hypothesis testing */
+    bkw_hypo_testing(S, F, d, m, q, sigma, aux);
+
+    /* looks for the best candidate */
+    best = 0.0;
+    k = 0;
+    for (i = 1; i < depth; ++i) {
+        printf("\t%i : [ ", i);
+        sum = 0.0;
         for (j = 0; j < m; ++j) {
-            printf("%lu ", S[j][i].value);
+            printf("%.5f ", S[j][i]);
+            sum += S[j][i];
+        }
+        if (sum >= best) {
+            k = i;
+            best = sum;
         }
         printf("]\n");
     }
+    printf("\n");
+
+    printf("\t best score at : %i (%.5f)\n", k, best);
+
+    /* compares with the right secret */
+    best = 0.0;
+    k = 1 + 2*q + 3*q*q;
+    for (j = 0; j < m; ++j) {
+        best += S[j][k];
+    }
+
+    printf("\t correct was : %i (%.5f)\n\n", k, best);
+
+    /* frees memory */
+    bkw_free_log();
+
+    for (i = 0; i < m; ++i) {
+        free(S[i]);
+        free(F[i]);
+    }
+
+    free(aux[0]);
+    free(aux[1]);
+
+    free(aux);
+    free(S);
+    free(F);
 
     return NULL;
 }

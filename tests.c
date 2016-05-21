@@ -36,11 +36,7 @@ int main(int argc, char *argv[]) {
     int tests_number;
     char * result;
 
-
-    #ifdef _WIN32
-    win32_init();
-    #endif /* _WIN32 */
-
+    init_random();
 
     tests_number = SUITES_NUMBER;
 
@@ -90,11 +86,7 @@ int main(int argc, char *argv[]) {
 
     free(indices);
 
-
-    #ifdef _WIN32
-    win32_clear();
-    #endif /* _WIN32 */
-
+    close_random();
 
     return result != NULL;
 }
