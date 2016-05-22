@@ -11,6 +11,7 @@
  */
 
 #include "math.h"
+#include "fftw3.h"
 
 /*
  * Runs the BKW algorithm (to be completed...)
@@ -49,6 +50,12 @@ int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
 
 void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sigma,
                       math_t ** aux);
+
+/*
+ * Solves an LWE instance with multi-dimensional fast Fourier transforms.
+ */
+
+void bkw_fft(math_t * v, math_t ** F, int d, int m, long q);
 
 /*
  * Frees the precomputation of the logarithms in bkw_hypo_testing(). This should

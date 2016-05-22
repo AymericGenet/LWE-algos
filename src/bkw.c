@@ -125,6 +125,69 @@ void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sig
     }
 }
 
+void bkw_fft(math_t * v, math_t ** F, int d, int m, long q) {
+    size_t i, j, idx, size;
+    double best;
+    int * n;
+    fftw_complex * in;
+    fftw_complex * out;
+    fftw_plan plan_forward;
+
+    /* creates the input array */
+    n = malloc((d - 1) * sizeof(int));
+    size = 1;
+
+    for (i = 0; i < d - 1; ++i) {
+        size *= q;
+        n[i] = q;
+    }
+    in = fftw_malloc(sizeof(fftw_complex) * size );
+
+    for (i = 0; i < size; ++i) {
+        in[i][0] = 0.0;
+        in[i][1] = 0.0;
+    }
+
+    /* puts value to be transformed */
+    for (i = 0; i < m; ++i) {
+        idx = 0;
+        for (j = 0; j < d - 1; ++j) {
+            idx = F[i][j].value + q*idx;
+        }
+        in[idx][0] += cos(2 * PI_VAL * F[i][d - 1].value /((double) q));
+        in[idx][1] += sin(2 * PI_VAL * F[i][d - 1].value /((double) q));
+    }
+
+    /* creates the output array */
+    out = fftw_malloc(sizeof(fftw_complex) * size);
+
+    /* let's gooooo */
+    plan_forward = fftw_plan_dft(d - 1, n, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(plan_forward);
+
+    /* finds the maximum */
+    best = 0.0;
+    idx = 0;
+    for (i = 0; i < size; ++i) {
+        if (out[i][0] > best) {
+            best = out[i][0];
+            idx = i;
+        }
+    }
+
+    /* recovers the vector and puts it in v */
+    for (i = 0; i < d - 1; ++i) {
+        v[d - 2 - i].value = idx % q;
+        idx = (idx - v[d - 2 - i].value)/q;
+    }
+
+    /* frees the memory for fft */
+    free(n);
+    fftw_destroy_plan(plan_forward);
+    fftw_free(in);
+    fftw_free(out);
+}
+
 void bkw_free_log() {
     free(log_j);
     log_j = NULL;

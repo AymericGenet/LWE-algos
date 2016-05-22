@@ -191,10 +191,70 @@ char * test_bkw_hypo_testing() {
     return NULL;
 }
 
+char * test_bkw_fft() {
+    size_t i;
+    int d, m;
+    long q;
+    math_t ** F;
+    math_t * v;
+
+    /* init */
+    m = 5, q = 5, d = 4;
+
+    F = malloc(m * sizeof(math_t *));
+    v = malloc((d - 1) * sizeof(math_t));
+
+    for (i = 0; i < m; ++i) {
+        F[i] = malloc(d * sizeof(math_t));
+    }
+
+    for (i = 0; i < d - 1; ++i) {
+        v[i].value = 0;
+    }
+
+    /* samples */
+    F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3;
+    F[0][3].value = (1*1 + 2*2 + 3*3) % q; /* c_0 */
+
+    F[1][0].value = 4; F[1][1].value = 3; F[1][2].value = 2;
+    F[1][3].value = (4*1 + 3*2 + 2*3) % q; /* c_1 */
+
+    F[2][0].value = 2; F[2][1].value = 3; F[2][2].value = 4;
+    F[2][3].value = (2*1 + 3*2 + 4*3) % q; /* c_2 */
+
+    F[3][0].value = 1; F[3][1].value = 4; F[3][2].value = 2;
+    F[3][3].value = (1*1 + 4*2 + 2*3) % q; /* c_3 */
+
+    F[4][0].value = 3; F[4][1].value = 3; F[4][2].value = 4;
+    F[4][3].value = (3*1 + 3*2 + 4*3) % q; /* c_4 */
+
+    /* runs hypothesis testing with fft */
+    bkw_fft(v, F, d, m, q);
+
+    /* checks result */
+    printf("\tAccording to FFT  v = [ ");
+    for (i = 0; i < d - 1; ++i) {
+        printf("%lu ", v[i].value);
+    }
+    printf("]\n");
+    printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");
+
+    /* frees memory */
+    for (i = 0; i < m; ++i) {
+        free(F[i]);
+    }
+
+    free(F);
+    free(v);
+
+    return NULL;
+}
+
 char * bkw_all_tests() {
     printf("\n============== BKW Algorithm tests =============\n\n");
     mu_run_test(test_bkw_lf1, "bkw_lf1()");
     mu_run_test(test_bkw_hypo_testing, "bkw_hypo_testing()");
+    mu_run_test(test_bkw_fft, "bkw_fft()");
     printf("\n");
 
     return NULL;
