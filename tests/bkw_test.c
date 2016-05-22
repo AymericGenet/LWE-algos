@@ -14,7 +14,7 @@
 #include <math.h>
 
 char * test_bkw_lf1() {
-    size_t i, j;
+    size_t i, j, k;
     int n, b, a;
     long q, depth;
     math_t * res;
@@ -22,20 +22,20 @@ char * test_bkw_lf1() {
     math_t *** T;
 
     /* init  */
-    n = 9, q = 97, b = 3;
+    n = 9, q = 5, b = 3;
     a = n/b;
-    depth = 2*456336; /* 2*(q^b - 1)/2 */
+    depth = pow(q, b);
 
     secret = malloc(n * sizeof(long));
     secret[0] = 1;
     secret[1] = 2;
     secret[2] = 3;
     secret[3] = 4;
-    secret[4] = 5;
-    secret[5] = 6;
-    secret[6] = 7;
-    secret[7] = 8;
-    secret[8] = 9;
+    secret[4] = 0;
+    secret[5] = 4;
+    secret[6] = 3;
+    secret[7] = 2;
+    secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     res = malloc((n + 1) * sizeof(math_t));
@@ -76,6 +76,20 @@ char * test_bkw_lf1() {
         printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 
+    printf("\n\t### Table T[a][q^b] state ###\n\n");
+    for (i = 0; i < a; ++i) {
+        for (j = 0; j < depth; ++j) {
+            if (T[i][j] != NULL) {
+                printf("\t[ ");
+                for (k = 0; k < n + 1; ++k) {
+                    printf("%lu ", T[i][j][k].value);
+                }
+                printf("]\n");
+            }
+        }
+    }
+    printf("\n");
+
     /* frees memory */
     for (i = 0; i < a; ++i) {
         free(aux[i]);
@@ -87,6 +101,111 @@ char * test_bkw_lf1() {
 
     free(aux);
     free(T);
+    free(res);
+    free(secret);
+
+    return NULL;
+}
+
+char * test_bkw_lf2() {
+    size_t i, j, k, l;
+    int n, b, a, d;
+    long q, depth;
+    math_t * res;
+    math_t ** aux;
+    table_t * tab;
+    node_t * curr;
+    math_t *** T;
+
+    /* init  */
+    n = 9, q = 5, b = 3, d = 2;
+    a = n/b;
+    depth = pow(q, b);
+
+    secret = malloc(n * sizeof(long));
+    secret[0] = 1;
+    secret[1] = 2;
+    secret[2] = 3;
+    secret[3] = 4;
+    secret[4] = 0;
+    secret[5] = 4;
+    secret[6] = 3;
+    secret[7] = 2;
+    secret[8] = 1;
+    sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
+
+    res = malloc((n + 1) * sizeof(math_t));
+    aux = malloc(a * sizeof(math_t *));
+
+    for (i = 0; i < a; ++i) {
+        aux[i] = malloc((n + 1) * sizeof(math_t));
+    }
+
+    tab = malloc(sizeof(table_t));
+    bkw_create_table(tab, n, q, b, d);
+
+    /* draws a sample when l = 0 */
+    bkw_lf2(res, n, q, b, 0, tab, aux);
+
+    for (i = 0; i < n; ++i) {
+        printf("\tres[%i] = %lu\n", i, res[i].value);
+    }
+
+    printf("\n");
+
+    /* draws a sample when l = 1 */
+    bkw_lf2(res, n, q, b, 1, tab, aux);
+
+    for (i = 0; i < n; ++i) {
+        printf("\tres[%i] = %lu\n", i, res[i].value);
+    }
+
+    printf("\n");
+
+    /* draws a sample when l = 2 */
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+    bkw_lf2(res, n, q, b, 2, tab, aux);
+
+    for (i = 0; i < n; ++i) {
+        printf("\tres[%i] = %lu\n", i, res[i].value);
+    }
+
+    curr = tab->first;
+    l = 0;
+    do {
+        T = curr->T;
+        printf("\n\t### Linked-Layer %i ###\n\n", l);
+        for (i = 0; i < a; ++i) {
+            for (j = 0; j < depth; ++j) {
+                if (T[i][j] != NULL) {
+                    printf("\t[ ");
+                    for (k = 0; k < n + 1; ++k) {
+                        printf("%lu ", T[i][j][k].value);
+                    }
+                    printf("]\n");
+                }
+            }
+        }
+        printf("\n");
+        curr = curr->next;
+        l++;
+    } while (curr != NULL);
+
+    /* frees memory */
+    bkw_free_table(tab);
+
+    for (i = 0; i < a; ++i) {
+        free(aux[i]);
+    }
+
+    free(aux);
     free(res);
     free(secret);
 
@@ -253,6 +372,7 @@ char * test_bkw_fft() {
 char * bkw_all_tests() {
     printf("\n============== BKW Algorithm tests =============\n\n");
     mu_run_test(test_bkw_lf1, "bkw_lf1()");
+    mu_run_test(test_bkw_lf2, "bkw_lf2()");
     mu_run_test(test_bkw_hypo_testing, "bkw_hypo_testing()");
     mu_run_test(test_bkw_fft, "bkw_fft()");
     printf("\n");

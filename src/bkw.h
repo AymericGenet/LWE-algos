@@ -13,6 +13,35 @@
 #include "math.h"
 #include "fftw3.h"
 
+/* Linked-list node of tables T[a][q^b - 1] */
+typedef struct node_t node_t;
+
+struct node_t {
+    node_t * next;
+    math_t *** T;
+};
+
+/*
+ * Table structure which allows to keep track of the samples in LF2.
+ */
+
+typedef struct {
+    node_t * first;
+    int * states;
+    math_t ** sample;
+
+    int n, b, a, d;
+    long q;
+} table_t;
+
+void bkw_create_table(table_t * tab, int n, long q, int b, int d);
+
+void bkw_free_table(table_t * tab);
+
+void bkw_create_node(node_t * node, int a, long q, int b);
+
+void bkw_free_node(node_t * node, int a, int q, int b);
+
 /*
  * Runs the BKW algorithm (to be completed...)
  */
@@ -21,7 +50,13 @@ int bkw_algo(math_t * res, int n, int b, int l);
 
 /*
  * Draws a pair (a, c) from the lwe_oracle() such that the components between
- * [(l - 1)*b, l*b] are all zero.
+ * [(l - 1)*b, l*b] are all zero, according to LF1.
+ *
+ * The LF1 algorithm samples the oracle and stores the results in T[l] until the
+ * components from [(l - 1)*b, l*b] collides with a previously stored sample. In
+ * this case, it outputs the difference between those two. The algorithm also
+ * checks for a collision with the negation of the sample, but only stores one
+ * of the two.
  *
  * Returns 1 (true) if LF1 could sample from the oracle, 0 (false) otherwise. If
  * the function returned 0 (false), the sample in res should be discarded.
@@ -31,6 +66,24 @@ int bkw_algo(math_t * res, int n, int b, int l);
 
 int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
             math_t ** aux);
+
+/*
+ * Draws a pair (a, c) from the lwe_oracle() such that the components between
+ * [(l - 1)*b, l*b] are all zero, according to LF2.
+ *
+ * The LF2 improvement stores every sample, even if a sample collides with one
+ * stored in the table T. It makes use of the linked-list structure table_t to
+ * append such new sample. 
+ *
+ * Returns 1 (true) if LF2 could sample from the oracle, 0 (false) otherwise. If
+ * the function returned 0 (false), the sample in res should be discarded.
+ *
+ *  Minimum size for auxiliary variable : [l] x [n + 1]
+ */
+
+int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
+            math_t ** aux);
+
 
 /*
  * Computes the score of every possible vector v in Z_q^b.

@@ -15,6 +15,77 @@
 
 static double * log_j = NULL;
 
+void bkw_create_table(table_t * tab, int n, long q, int b, int d) {
+    size_t i;
+
+    tab->n = n;
+    tab->q = q;
+    tab->b = b;
+    tab->d = d;
+    tab->a = n/b;
+
+    tab->first = malloc(sizeof(node_t));
+    tab->states = malloc(tab->a * sizeof(int));
+    tab->sample = malloc(tab->a * sizeof(math_t *));
+
+    for (i = 0; i < tab->a; ++i) {
+        tab->states[i] = 0;
+        tab->sample[i] = NULL;
+    }
+
+    bkw_create_node(tab->first, tab->a, tab->q, tab->b);
+}
+
+void bkw_free_table(table_t * tab) {
+    size_t i;
+
+    for (i = 0; i < tab->a; ++i) {
+        free(tab->sample[i]);
+    }
+
+    free(tab->sample);
+    free(tab->states);
+    bkw_free_node(tab->first, tab->a, tab->q, tab->b);
+    free(tab);
+}
+
+void bkw_create_node(node_t * node, int a, long q, int b) {
+    size_t i, j;
+    long depth;
+
+    depth = pow(q, b);
+
+    node->next = NULL;
+    node->T = malloc(a * sizeof(math_t **));
+    for (i = 0; i < a; ++i) {
+        node->T[i] = malloc(depth * sizeof(math_t *));
+        for (j = 0; j < depth; ++j) {
+            node->T[i][j] = NULL;
+        }
+    }
+}
+
+void bkw_free_node(node_t * node, int a, int q, int b) {
+    size_t i, j;
+    long depth;
+
+    depth = pow(q, b);
+
+    if (node->next != NULL) {
+        bkw_free_node(node->next, a, q, b);
+    }
+
+    for (i = 0; i < a; ++i) {
+        for (j = 0; j < depth; ++j) {
+            free(node->T[i][j]);
+        }
+        free(node->T[i]);
+    }
+    free(node->T);
+
+    free(node);
+}
+
 int bkw_algo(math_t * res, int n, int b, int l) {
     return 1;
 }
@@ -71,6 +142,131 @@ int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
         }
     }
     return 0; /* should not happen */
+}
+
+int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
+            math_t ** aux) {
+    size_t i, idx;
+    int layer;
+    node_t * current;
+    math_t *** T;
+    math_t * sample;
+
+    /* finds layer at which the last sample was output */
+    layer = 0;
+    sample = tab->sample[l];
+    current = tab->first;
+    while (layer != tab->states[l]) {
+        current = current->next;
+        layer++;
+    }
+
+    /* if next layer exists, checks if sample still collides there */
+    if (current->next != NULL) {
+        T = current->next->T;
+        (tab->states[l])++;
+
+        /* checks if collision */
+        idx = index(sample, q, (l - 1) * b, l * b);
+        if (T[l][idx] != NULL) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = (sample[i].value + q - T[l][idx][i].value) % q;
+            }
+            return 1; /* true */
+        }
+
+        /* negates it */
+        for (i = 0; i < n + 1; ++i) {
+            aux[0][i].value = (q - sample[i].value) % q;
+        }
+
+        /* checks if collision */
+        idx = index(aux[0], q, (l - 1) * b, l * b);
+        if (T[l][idx] != NULL) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
+            }
+            return 1; /* true */
+        }
+
+        /* otherwise, stores it */
+        idx = index(sample, q, (l - 1) * b, l * b);
+        T[l][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = 0; i < n + 1; ++i) {
+            T[l][idx][i].value = sample[i].value;
+        }
+    }
+    /* otherwise, if not first call, creates new layer and puts sample in it */
+    else if (sample != NULL) {
+        current->next = malloc(sizeof(node_t));
+        bkw_create_node(current->next, n/b, q, b);
+        T = current->next->T;
+
+        /* stores sample */
+        idx = index(sample, q, (l - 1) * b, l * b);
+        T[l][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = 0; i < n + 1; ++i) {
+            T[l][idx][i].value = sample[i].value;
+        }
+    }
+    /* upon first call */
+    else {
+        tab->sample[l] = malloc((n + 1) * sizeof(math_t));
+        sample = tab->sample[l];
+    }
+
+    T = tab->first->T;
+    tab->states[l] = 0;
+    while (1) {
+        /* samples from previous layer */
+        if (l == 0) {
+            return lwe_oracle(res, n, q);
+        } else {
+            if (!bkw_lf1(aux[0], n, q, b, l - 1, T, aux + 1)) {
+                return 0; /* false */
+            }
+        }
+
+        /* if first elements already 0, returns it */
+        if (zero(aux[0], (l - 1) * b, l * b)) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = aux[0][i].value;
+                sample[i].value = aux[0][i].value;
+            }
+            return 1; /* true */
+        }
+
+        /* checks if collision */
+        idx = index(aux[0], q, (l - 1) * b, l * b);
+        if (T[l][idx] != NULL) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
+                sample[i].value = aux[0][i].value;
+            }
+            return 1; /* true */
+        }
+
+        /* negates it */
+        for (i = 0; i < n + 1; ++i) {
+            aux[0][i].value = (q - aux[0][i].value) % q;
+        }
+
+        /* checks if collision */
+        idx = index(aux[0], q, (l - 1) * b, l * b);
+        if (T[l][idx] != NULL) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
+                sample[i].value = aux[0][i].value;
+            }
+            return 1; /* true */
+        }
+
+        /* otherwise, stores it, and repeat */
+        T[l][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = 0; i < n + 1; ++i) {
+            T[l][idx][i].value = aux[0][i].value;
+        }
+    }
 }
 
 void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sigma,
