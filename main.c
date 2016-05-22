@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* prints distribution */
-    printf("\nAimed distribution :\n");
+    printf("\nAimed distribution :\n\n");
     for (i = 0; i < q; ++i) {
         stats[i] = 0;
     }
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* prints noise extraction distribution */
-    printf("\nObtained distribution :\n");
+    printf("\nObtained distribution :\n\n");
     for (i = 0; i < q; ++i) {
         stats[i] = 0;
     }
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     /* ========================= HYPOTHESIS TESTING ========================= */
 
     /* runs hypothesis testing */
-    printf("\nRunning hypothesis testing... ");
+    printf("\nRunning log-likelihood hypothesis testing... ");
     bkw_hypo_testing(S, F, d, m, q, sqrt(pow(2, a - 1)) * sigma, aux[1]);
     printf("done\n");
 
@@ -185,6 +185,25 @@ int main(int argc, char *argv[]) {
     }
     printf("] (idx %i) score of %.5f\n\n", k, sum);
 
+
+    /* ======================= FAST FOURIER TRANSFORM ======================= */
+
+    /* runs hypothesis testing */
+    printf("\nRunning FFT hypothesis testing... ");
+    bkw_fft(guess, F, d, m, q);
+    printf("done\n");
+
+    /* prints best guess */
+    printf("\n\t best guess     v = [ ");
+    for (i = 0; i < d - 1; ++i) {
+        printf("%lu ", guess[i].value);
+    }
+    printf("]\n");
+    printf("\t correct secret s = [ ");
+    for (i = n - d + 1; i < n; ++i) {
+        printf("%lu ", secret[i]);
+    }
+    printf("]\n\n");
 
     /* ================================= END ================================ */
 
