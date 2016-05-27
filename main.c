@@ -33,45 +33,30 @@ int main(int argc, char *argv[]) {
     depth = 2197;
     m = 10;
 
-    T = malloc(a * sizeof(math_t **));
-    F = malloc(m * sizeof(math_t *));
-    S = malloc(m * sizeof(double *));
-    res = malloc(m * sizeof(math_t *));
-    stats = malloc(q * sizeof(unsigned long));
-    guess = malloc((d - 1) * sizeof(math_t));
+    T = calloc(a, sizeof(math_t **));
+    F = calloc(m, sizeof(math_t *));
+    S = calloc(m, sizeof(double *));
+    res = calloc(m, sizeof(math_t *));
+    stats = calloc(q, sizeof(unsigned long));
+    guess = calloc((d - 1), sizeof(math_t));
 
-    aux = malloc(2 * sizeof(math_t **));
-    aux[0] = malloc(a * sizeof(math_t *));
-    aux[1] = malloc(2 * sizeof(math_t *));
+    aux = calloc(2, sizeof(math_t **));
+    aux[0] = calloc(a, sizeof(math_t *));
+    aux[1] = calloc(2, sizeof(math_t *));
 
     for (i = 0; i < a; ++i) {
-        aux[0][i] = malloc((n + 1) * sizeof(math_t));
-        T[i] = malloc(depth * sizeof(math_t *));
-
-        for (j = 0; j < depth; ++j) {
-            T[i][j] = NULL;
-        }
-        for (j = 0; j < n + 1; ++j) {
-            aux[0][i][j].value = 0;
-        }
+        aux[0][i] = calloc((n + 1), sizeof(math_t));
+        T[i] = calloc(depth, sizeof(math_t *));
     }
 
     for (i = 0; i < m; ++i) {
-        F[i] = malloc(d * sizeof(math_t));
-        S[i] = malloc(depth * sizeof(double));
-        res[i] = malloc((n + 1) * sizeof(math_t));
-
-        for (j = 0; j < depth; ++j) {
-            S[i][j] = 0.0;
-        }
+        F[i] = calloc(d, sizeof(math_t));
+        S[i] = calloc(depth, sizeof(double));
+        res[i] = calloc((n + 1), sizeof(math_t));
     }
 
-    aux[1][0] = malloc(m * sizeof(math_t));
-    aux[1][1] = malloc((d - 1) * sizeof(math_t));
-    for (i = 0; i < d - 1; ++i) {
-        aux[1][1][i].value = 0;
-        guess[i].value = 0;
-    }
+    aux[1][0] = calloc(m, sizeof(math_t));
+    aux[1][1] = calloc((d - 1), sizeof(math_t));
 
     init_random();
 

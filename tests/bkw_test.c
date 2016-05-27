@@ -38,17 +38,13 @@ char * test_bkw_lf1() {
     secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    res = malloc((n + 1) * sizeof(math_t));
+    res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(math_t *));
     T = malloc(a * sizeof(math_t **));
 
     for (i = 0; i < a; ++i) {
-        aux[i] = malloc((n + 1) * sizeof(math_t));
-        T[i] = malloc(depth * sizeof(math_t *));
-
-        for (j = 0; j < depth; ++j) {
-            T[i][j] = NULL;
-        }
+        aux[i] = calloc((n + 1), sizeof(math_t));
+        T[i] = calloc(depth, sizeof(math_t *));
     }
 
     /* draws a sample when l = 0 */
@@ -134,11 +130,11 @@ char * test_bkw_lf2() {
     secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    res = malloc((n + 1) * sizeof(math_t));
+    res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(math_t *));
 
     for (i = 0; i < a; ++i) {
-        aux[i] = malloc((n + 1) * sizeof(math_t));
+        aux[i] = calloc((n + 1), sizeof(math_t));
     }
 
     tab = malloc(sizeof(table_t));
@@ -231,18 +227,12 @@ char * test_bkw_hypo_testing() {
     F = malloc(m * sizeof(math_t *));
 
     for (i = 0; i < m; ++i) {
-        S[i] = malloc(depth * sizeof(double));
+        S[i] = calloc(depth, sizeof(double));
         F[i] = malloc(d * sizeof(math_t));
-        for (j = 0; j < depth; ++j) {
-            S[i][j] = 0.0;
-        }
     }
 
     aux[0] = malloc(m * sizeof(math_t));
-    aux[1] = malloc((d - 1) * sizeof(math_t));
-    for (j = 0; j < d - 1; ++j) {
-        aux[1][j].value = 0;
-    }
+    aux[1] = calloc((d - 1), sizeof(math_t));
 
     /* samples */
     F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3;
@@ -321,14 +311,10 @@ char * test_bkw_fft() {
     m = 5, q = 5, d = 4;
 
     F = malloc(m * sizeof(math_t *));
-    v = malloc((d - 1) * sizeof(math_t));
+    v = calloc((d - 1), sizeof(math_t));
 
     for (i = 0; i < m; ++i) {
         F[i] = malloc(d * sizeof(math_t));
-    }
-
-    for (i = 0; i < d - 1; ++i) {
-        v[i].value = 0;
     }
 
     /* samples */
