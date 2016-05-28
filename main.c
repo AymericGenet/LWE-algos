@@ -16,8 +16,10 @@
 int main(int argc, char *argv[]) {
     size_t i, j;
     int n, b, a, m, d, k;
-    long q, depth, basis, noise;
+    long q, basis, noise;
+    unsigned long depth;
     math_t * guess;
+    math_t * vec;
     math_t ** res;
     math_t ** F;
     math_t *** aux;
@@ -28,21 +30,22 @@ int main(int argc, char *argv[]) {
 
 
     /* ================================ INIT ================================ */
-    n = 6, q = 13, b = 3, d = 4;
+    n = 16, q = 101, b = 4, d = 5;
     a = n/b;
-    depth = 2197;
-    m = 10;
+    depth = (unsigned long) pow(q, b);
+    m = (int) pow(2, 5);
 
-    T = calloc(a, sizeof(math_t **));
-    F = calloc(m, sizeof(math_t *));
-    S = calloc(m, sizeof(double *));
-    res = calloc(m, sizeof(math_t *));
+    T = malloc(a * sizeof(math_t **));
+    F = malloc(m * sizeof(math_t *));
+    S = malloc(m * sizeof(double *));
+    res = malloc(m * sizeof(math_t *));
     stats = calloc(q, sizeof(unsigned long));
     guess = calloc((d - 1), sizeof(math_t));
+    vec = malloc(n * sizeof(math_t));
 
-    aux = calloc(2, sizeof(math_t **));
-    aux[0] = calloc(a, sizeof(math_t *));
-    aux[1] = calloc(2, sizeof(math_t *));
+    aux = malloc(2 * sizeof(math_t **));
+    aux[0] = malloc(a * sizeof(math_t *));
+    aux[1] = malloc(2 * sizeof(math_t *));
 
     for (i = 0; i < a; ++i) {
         aux[0][i] = calloc((n + 1), sizeof(math_t));
@@ -65,12 +68,10 @@ int main(int argc, char *argv[]) {
 
     /* defines secret and sigma in lwe_oracle */
     secret = malloc(n * sizeof(long));
-    secret[0] = 1;
-    secret[1] = 2;
-    secret[2] = 3;
-    secret[3] = 4;
-    secret[4] = 5;
-    secret[5] = 6;
+    for (i = 0; i < n; ++i) {
+        read_random(vec + i);
+        secret[i] = vec[i].value % q;
+    }
     sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     /* runs algorithm to recover m samples */
