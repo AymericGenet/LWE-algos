@@ -8,7 +8,7 @@
 #include "bkw_test.h"
 #include "minunit.h"
 #include "../src/bkw.h"
-#include "../src/lwe_oracle.h"
+#include "../src/lwe.h"
 #include "../src/math.h"
 #include <stdio.h>
 #include <math.h>
@@ -209,25 +209,22 @@ char * test_bkw_lf2() {
 }
 
 char * test_bkw_hypo_testing() {
-    size_t i, j, k;
+    size_t i;
     int d, m;
-    long q, depth;
+    long q;
     math_t ** aux;
     math_t ** F;
-    double ** S;
-    double best, sum;
+    math_t * v;
 
     /* init */
     sigma = 1;
     m = 5, q = 5, d = 4;
-    depth = 125; /* q^(d - 1) */
 
-    S = malloc(m * sizeof(double *));
     aux = malloc(2 * sizeof(math_t *));
     F = malloc(m * sizeof(math_t *));
+    v = calloc(d - 1, sizeof(math_t));
 
     for (i = 0; i < m; ++i) {
-        S[i] = calloc(depth, sizeof(double));
         F[i] = malloc(d * sizeof(math_t));
     }
 
@@ -251,42 +248,20 @@ char * test_bkw_hypo_testing() {
     F[4][3].value = (3*1 + 3*2 + 4*3) % q; /* c_4 */
 
     /* runs hypothesis testing */
-    bkw_hypo_testing(S, F, d, m, q, sigma, aux);
+    bkw_hypo_testing(v, F, d, m, q, sigma, aux);
 
-    /* looks for the best candidate */
-    best = 0.0;
-    k = 0;
-    for (i = 1; i < depth; ++i) {
-        printf("\t%i : [ ", i);
-        sum = 0.0;
-        for (j = 0; j < m; ++j) {
-            printf("%.5f ", S[j][i]);
-            sum += S[j][i];
-        }
-        if (sum >= best) {
-            k = i;
-            best = sum;
-        }
-        printf("]\n");
+    /* checks result */
+    printf("\tAccording to L-L  v = [ ");
+    for (i = 0; i < d - 1; ++i) {
+        printf("%lu ", v[i].value);
     }
-    printf("\n");
-
-    printf("\t best score at : %i (%.5f)\n", k, best);
-
-    /* compares with the right secret */
-    best = 0.0;
-    k = 1 + 2*q + 3*q*q;
-    for (j = 0; j < m; ++j) {
-        best += S[j][k];
-    }
-
-    printf("\t correct was : %i (%.5f)\n\n", k, best);
+    printf("]\n");
+    printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");
 
     /* frees memory */
     bkw_free_log();
 
     for (i = 0; i < m; ++i) {
-        free(S[i]);
         free(F[i]);
     }
 
@@ -294,7 +269,7 @@ char * test_bkw_hypo_testing() {
     free(aux[1]);
 
     free(aux);
-    free(S);
+    free(v);
     free(F);
 
     return NULL;

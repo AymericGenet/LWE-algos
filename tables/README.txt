@@ -1,0 +1,1 @@
+This folder contains persistent tables used by bkw_mem algorithms.

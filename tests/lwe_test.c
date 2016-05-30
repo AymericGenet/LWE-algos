@@ -1,16 +1,17 @@
 /*
- * lwe_oracle_test.c
+ * lwe_test.c
  *
  *  Created on: Apr 26, 2016
  *      Author: Aymeric Genet
  */
 
-#include "lwe_oracle_test.h"
+#include "lwe_test.h"
 #include "minunit.h"
-#include "../src/lwe_oracle.h"
+#include "../src/lwe.h"
 #include "../src/math.h"
 #include <stdio.h>
 #include <math.h>
+
 
 char * test_lwe_oracle_predef() {
     int n;
@@ -70,7 +71,7 @@ char * test_lwe_oracle() {
     return NULL;
 }
 
-char * lwe_oracle_all_tests() {
+char * lwe_all_tests() {
     printf("\n=============== LWE Oracle tests ===============\n\n");
     mu_run_test(test_lwe_oracle_predef, "lwe_oracle_predef()");
     mu_run_test(test_lwe_oracle, "lwe_oracle()");

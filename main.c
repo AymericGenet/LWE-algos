@@ -9,14 +9,14 @@
 #include <stdlib.h>
 #include "src/bkw.h"
 #include "src/math.h"
-#include "src/lwe_oracle.h"
+#include "src/lwe.h"
 #include <math.h>
 #include <float.h>
 
 int main(int argc, char *argv[]) {
     size_t i, j;
-    int n, b, a, m, d, k;
-    long q, basis, noise;
+    int n, b, a, m, d;
+    long q, noise;
     unsigned long depth;
     math_t * guess;
     math_t * vec;
@@ -24,20 +24,18 @@ int main(int argc, char *argv[]) {
     math_t ** F;
     math_t *** aux;
     math_t *** T;
-    double ** S;
-    double best, sum;
+    double sum;
     unsigned int * stats;
 
 
     /* ================================ INIT ================================ */
-    n = 16, q = 101, b = 4, d = 5;
+    n = 9, q = 13, b = 3, d = 4;
     a = n/b;
     depth = (unsigned long) pow(q, b);
     m = (int) pow(2, 5);
 
     T = malloc(a * sizeof(math_t **));
     F = malloc(m * sizeof(math_t *));
-    S = malloc(m * sizeof(double *));
     res = malloc(m * sizeof(math_t *));
     stats = calloc(q, sizeof(unsigned long));
     guess = calloc((d - 1), sizeof(math_t));
@@ -54,7 +52,6 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i < m; ++i) {
         F[i] = calloc(d, sizeof(math_t));
-        S[i] = calloc(depth, sizeof(double));
         res[i] = calloc((n + 1), sizeof(math_t));
     }
 
@@ -130,46 +127,20 @@ int main(int argc, char *argv[]) {
 
     /* runs hypothesis testing */
     printf("\nRunning log-likelihood hypothesis testing... ");
-    bkw_hypo_testing(S, F, d, m, q, sqrt(pow(2, a - 1)) * sigma, aux[1]);
+    bkw_hypo_testing(guess, F, d, m, q, sqrt(pow(2, a - 1)) * sigma, aux[1]);
     printf("done\n");
 
-    /* recovers the best vector according to its score */
-    best = -DBL_MAX;
-    k = -1;
-    for (i = 1; i < depth; ++i) {
-        sum = 0.0;
-        for (j = 0; j < m; ++j) {
-            sum += S[j][i];
-        }
-        if (sum >= best) {
-            k = i;
-            best = sum;
-        }
-    }
-    unindex(guess, k, q, n - d + 1, n);
-
+    /* prints best guess */
     printf("\n\t best guess     v = [ ");
     for (i = 0; i < d - 1; ++i) {
         printf("%lu ", guess[i].value);
     }
-    printf("] (idx %i) score of %.5f\n", k, best);
-
-    /* compares with the correct vector */
-    k = 0;
-    basis = 1;
-    for (j = n - b; j < n; ++j) {
-        k += secret[j]*basis;
-        basis *= q;
-    }
-    sum = 0;
-    for (j = 0; j < m; ++j) {
-        sum += S[j][k];
-    }
+    printf("]\n");
     printf("\t correct secret s = [ ");
     for (i = n - d + 1; i < n; ++i) {
         printf("%lu ", secret[i]);
     }
-    printf("] (idx %i) score of %.5f\n\n", k, sum);
+    printf("]\n\n");
 
 
     /* ======================= FAST FOURIER TRANSFORM ======================= */
@@ -206,7 +177,6 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i < m; ++i) {
         free(F[i]);
-        free(S[i]);
         free(res[i]);
     }
 
@@ -218,7 +188,6 @@ int main(int argc, char *argv[]) {
 
     free(guess);
     free(stats);
-    free(S);
     free(res);
     free(F);
     free(T);

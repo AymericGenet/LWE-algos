@@ -1,11 +1,11 @@
 /*
- * lwe_oracle_test.c
+ * lwe_test.c
  *
  *  Created on: Apr 26, 2016
  *      Author: Aymeric Genet
  */
 
-#include "lwe_oracle.h"
+#include "lwe.h"
 #include "math.h"
 
 long * secret;

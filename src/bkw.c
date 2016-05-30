@@ -7,7 +7,7 @@
 
 #include "bkw.h"
 #include "math.h"
-#include "lwe_oracle.h"
+#include "lwe.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -279,11 +279,11 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
     return 0;
 }
 
-void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sigma,
-                      math_t ** aux) {
+void bkw_hypo_testing(math_t * v, math_t ** F, int d, int m, long q,
+                      double sigma, math_t ** aux) {
     int i;
-    size_t j, idx;
-    double p;
+    size_t j;
+    double p, best, current;
 
     /* precomputes each value of log(j) */
     if (log_j == NULL) {
@@ -299,20 +299,26 @@ void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sig
         aux[0][i].value = F[i][0].value;
     }
 
-    idx = 1;
+    best = 0.0;
     /* foreach v (aux[1]) in Z_q^d, starting at v = (1 0 0 0...) */
     for (aux[1][0].value = 1; aux[1][d - 2].value != q; ) {
         /* foreach sample, update S[v] with a_i - c_i */
+        current = 0.0;
         for (i = 0; i < m; ++i) {
             /* S[v]_i = W(aux[0][i] - c_i) */
-            S[i][idx] = log_j[(aux[0][i].value - F[i][d - 1].value + q) % q];
+            current += log_j[(aux[0][i].value - F[i][d - 1].value + q) % q];
             /* aux[0][i] += first coordinate of a_i */
             aux[0][i].value = (aux[0][i].value + F[i][0].value) % q;
+        }
+        if (current > best) {
+            for (i = 0; i < d - 1; ++i) {
+                v[i].value = aux[1][i].value;
+            }
+            best = current;
         }
 
         /* increases v by (1 0 0 0...) */
         aux[1][0].value += 1;
-        idx++;
 
         /* when v becomes (q 0 0 0...), increases the next coordinates,
         repeats the process if next coordinates also hit q (max). */

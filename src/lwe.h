@@ -1,13 +1,13 @@
 /*
- * lwe_oracle_test.h
+ * lwe_test.h
  *  Provides LWE oracle functions that will be used in the BKW algorithm.
  *
  *  Created on: Apr 26, 2016
  *      Author: Aymeric Genet
  */
 
-#ifndef LWE_ORACLE_H_
-#define LWE_ORACLE_H_
+#ifndef LWE_H_
+#define LWE_H_
 
 #define NOISE_FUNCTION(x, q) rounded_gaussian(x, q)
 
@@ -37,4 +37,4 @@ int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig);
 
 int lwe_oracle(math_t * res, int n, long q);
 
-#endif /* LWE_ORACLE_H_ */
+#endif /* LWE_H_ */

@@ -10,6 +10,9 @@
  *      Author: Aymeric Genet
  */
 
+#ifndef BKW_H_
+#define BKW_H_
+
 #include "math.h"
 #include "fftw3.h"
 
@@ -101,8 +104,8 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
  *    - aux[1] : [d - 1]
  */
 
-void bkw_hypo_testing(double ** S, math_t ** F, int d, int m, long q, double sigma,
-                      math_t ** aux);
+void bkw_hypo_testing(math_t * v, math_t ** F, int d, int m, long q,
+                      double sigma, math_t ** aux);
 
 /*
  * Solves an LWE instance with multi-dimensional fast Fourier transforms.
@@ -116,3 +119,5 @@ void bkw_fft(math_t * v, math_t ** F, int d, int m, long q);
  */
 
 void bkw_free_log();
+
+#endif /* BKW_H_ */

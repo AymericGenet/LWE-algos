@@ -155,6 +155,16 @@ int zero(math_t * elem, int a, int b) {
     return 1; /* true */
 }
 
+int equals(math_t * u, math_t * v, int a, int b) {
+    size_t i;
+    for (i = a; i < b; ++i) {
+        if (u[i].value != v[i].value) {
+            return 0; /* false */
+        }
+    }
+    return 1; /* true */
+}
+
 double custom_erf(double x) {
     double a1, a2, a3, a4, a5, p, t, y;
     int sign;
