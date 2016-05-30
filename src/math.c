@@ -46,8 +46,19 @@ int close_random() {
     return close(devRandom);
 }
 
-long discrete_gaussian(double sigma) {
-    return 0;
+long discrete_gaussian(double sigma, long q) {
+    double M, u;
+    math_t x;
+    long sample;
+
+    M = discrete_gaussian_pdf(0, sigma, q);
+    do {
+        read_random(&x);
+        read_drandom(&u);
+        u = u * M;
+        sample = q/2 - ((signed long) (x.value % q));
+    } while(u >= discrete_gaussian_pdf(sample, sigma, q));
+    return sample;
 }
 
 double discrete_gaussian_pdf(long x, double sigma, long q) {

@@ -60,10 +60,23 @@ int close_random();
  * Samples a number from the discrete Gaussian distribution.
  *
  * @param sigma The standard deviation of the Gaussian distribution
+ * @param q The modulus of the ring Z_q
  * @output A sample from the discrete Gaussian distribution
  */
 
-long discrete_gaussian(double sigma);
+long discrete_gaussian(double sigma, long q);
+
+/*
+ * Computes the probability density function of the discrete Gaussian
+ * distribution.
+ *
+ * @param x The element at which the pdf is evaluated
+ * @param sigma The standard deviation of the Gaussian distribution
+ * @param q The modulus of the ring Z_q
+ * @return The value for the cdf of the rounded Gaussian at x
+ */
+
+double discrete_gaussian_pdf(long x, double sigma, long q);
 
 /*
  * Computes the cumulative distribution function of the rounded Gaussian
@@ -93,6 +106,7 @@ double rounded_gaussian_pdf(long x, double sigma, long q, long k);
  * Samples a number from the rounded Gaussian distribution.
  *
  * @param sigma The standard deviation of the Gaussian distribution
+ * @param q The modulus of the ring Z_q
  * @output A sample from the discrete Gaussian distribution
  */
 
