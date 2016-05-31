@@ -29,10 +29,13 @@ int main(int argc, char *argv[]) {
 
 
     /* ================================ INIT ================================ */
-    n = 8, q = 67, b = 2, d = 3;
-    a = n/b;
+    n = 16, q = 197, a = 3, b = n/a, d = 3;
     depth = (unsigned long) pow(q, b);
-    m = (int) 100;
+    if (pow(q, b) - depth != 0) {
+        fprintf(stderr, "main: depth overflow\n");
+        exit(1);
+    }
+    m = (int) pow(2, 12.53);
 
     T = malloc(a * sizeof(math_t **));
     F = malloc(m * sizeof(math_t *));
@@ -47,6 +50,10 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < a; ++i) {
         aux[0][i] = calloc((n + 1), sizeof(math_t));
         T[i] = calloc(depth, sizeof(math_t *));
+        if (T[i] == NULL) {
+            fprintf(stderr, "main: could not allocate enough memory\n");
+            exit(1);
+        }
     }
 
     for (i = 0; i < m; ++i) {
