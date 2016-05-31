@@ -12,11 +12,13 @@
 #include "src/lwe.h"
 #include <math.h>
 #include <float.h>
+#include <time.h>
 
 int main(int argc, char *argv[]) {
     size_t i, j;
+    clock_t time;
     int n, b, a, m, d;
-    long q, noise;
+    long q;
     unsigned long depth;
     math_t * guess;
     math_t * vec;
@@ -24,20 +26,17 @@ int main(int argc, char *argv[]) {
     math_t ** F;
     math_t *** aux;
     math_t *** T;
-    double sum;
-    unsigned int * stats;
 
 
     /* ================================ INIT ================================ */
-    n = 9, q = 13, b = 3, d = 4;
+    n = 8, q = 67, b = 2, d = 3;
     a = n/b;
     depth = (unsigned long) pow(q, b);
-    m = (int) pow(2, 5);
+    m = (int) 100;
 
     T = malloc(a * sizeof(math_t **));
     F = malloc(m * sizeof(math_t *));
     res = malloc(m * sizeof(math_t *));
-    stats = calloc(q, sizeof(unsigned long));
     guess = calloc((d - 1), sizeof(math_t));
     vec = malloc(n * sizeof(math_t));
 
@@ -73,10 +72,12 @@ int main(int argc, char *argv[]) {
 
     /* runs algorithm to recover m samples */
     printf("Collecting %i samples... ", m);
+    time = clock();
     for (i = 0; i < m; ++i) {
         bkw_lf1(res[i], n, q, b, a - 1, T, aux[0]);
     }
-    printf("done !\n");
+    time = clock() - time;
+    printf("done !\nTime : %f s\n", time/((double) CLOCKS_PER_SEC));
 
     /* reduces samples */
     for (i = 0; i < m; ++i) {
@@ -85,50 +86,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /* prints distribution */
-    printf("\nAimed distribution :\n\n");
-    for (i = 0; i < q; ++i) {
-        stats[i] = 0;
-    }
-    for (i = 0; i < 1000; ++i) {
-        stats[rounded_gaussian(sqrt(pow(2, a - 1)) * sigma, q)]++;
-    }
-    for (i = 0; i < q; ++i) {
-        sum = (stats[i] / 10.0);
-        for (j = 0; j < sum; ++j) {
-            printf("=");
-        }
-        printf(" (%f)\n", rounded_gaussian_pdf(i, sqrt(pow(2, a - 1)) * sigma, q, 10));
-    }
-
-    /* prints noise extraction distribution */
-    printf("\nObtained distribution :\n\n");
-    for (i = 0; i < q; ++i) {
-        stats[i] = 0;
-    }
-    for (i = 0; i < m; ++i) {
-        noise = 0;
-        for (j = 0; j < d - 1; ++j) {
-            noise = (noise + secret[n - d + j + 1]*F[i][j].value) % q;
-        }
-        noise = (F[i][d - 1].value + q - noise) % q;
-        stats[noise]++;
-    }
-    for (i = 0; i < q; ++i) {
-        sum = 100.0 * (stats[i] / (double) m);
-        for (j = 0; j < sum; ++j) {
-            printf("=");
-        }
-        printf(" (%f)\n", stats[i] / (double) m);
-    }
-
 
     /* ========================= HYPOTHESIS TESTING ========================= */
 
     /* runs hypothesis testing */
     printf("\nRunning log-likelihood hypothesis testing... ");
+    time = clock();
     bkw_hypo_testing(guess, F, d, m, q, sqrt(pow(2, a - 1)) * sigma, aux[1]);
-    printf("done\n");
+    time = clock() - time;
+    printf("done !\nTime : %f s\n", time/((double) CLOCKS_PER_SEC));
 
     /* prints best guess */
     printf("\n\t best guess     v = [ ");
@@ -147,8 +113,10 @@ int main(int argc, char *argv[]) {
 
     /* runs hypothesis testing */
     printf("\nRunning FFT hypothesis testing... ");
+    time = clock();
     bkw_fft(guess, F, d, m, q);
-    printf("done\n");
+    time = clock() - time;
+    printf("done !\nTime : %f s\n", time/((double) CLOCKS_PER_SEC));
 
     /* prints best guess */
     printf("\n\t best guess     v = [ ");
@@ -186,8 +154,8 @@ int main(int argc, char *argv[]) {
     free(aux[1]);
     free(aux);
 
+    free(vec);
     free(guess);
-    free(stats);
     free(res);
     free(F);
     free(T);
