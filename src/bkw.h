@@ -13,8 +13,15 @@
 #ifndef BKW_H_
 #define BKW_H_
 
+#include "lwe.h"
 #include "math.h"
 #include "fftw3.h"
+
+typedef struct {
+    lwe_t lwe;
+    int a, b, d;
+    long m;
+} bkw_t;
 
 /* Linked-list node of tables T[a][q^b - 1] */
 typedef struct node_t node_t;
@@ -67,7 +74,7 @@ int bkw_algo(math_t * res, int n, int b, int l);
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
+int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
             math_t ** aux);
 
 /*

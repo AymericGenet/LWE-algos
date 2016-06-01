@@ -90,22 +90,33 @@ int bkw_algo(math_t * res, int n, int b, int l) {
     return 1;
 }
 
-int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
+int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
             math_t ** aux) {
     size_t i, idx;
+    int start, end;
 
+    start = (l - 1) * b;
+    end   = n - b * l > 0 ? l * b : n - d;
     while (1) {
         /* samples from previous layer */
         if (l == 0) {
             return lwe_oracle(res, n, q);
         } else {
-            if (!bkw_lf1(aux[0], n, q, b, l - 1, T, aux + 1)) {
+            if (!bkw_lf1(aux[0], n, q, b, d, l - 1, T, aux + 1)) {
                 return 0; /* false */
             }
         }
 
+        /* corner case */
+        if (start >= end) {
+            for (i = 0; i < n + 1; ++i) {
+                res[i].value = aux[0][i].value;
+            }
+            return 1; /* true */
+        }
+
         /* if first elements already 0, returns it */
-        if (zero(aux[0], (l - 1) * b, l * b)) {
+        if (zero(aux[0], start, end)) {
             for (i = 0; i < n + 1; ++i) {
                 res[i].value = aux[0][i].value;
             }
@@ -113,10 +124,10 @@ int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
         }
 
         /* checks if collision */
-        idx = index(aux[0], q, (l - 1) * b, l * b);
-        if (T[l][idx] != NULL) {
+        idx = index(aux[0], q, start, end);
+        if (T[l-1][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
+                res[i].value = (aux[0][i].value + q - T[l-1][idx][i].value) % q;
             }
             return 1; /* true */
         }
@@ -127,18 +138,18 @@ int bkw_lf1(math_t * res, int n, long q, int b, int l, math_t *** T,
         }
 
         /* checks if collision */
-        idx = index(aux[0], q, (l - 1) * b, l * b);
-        if (T[l][idx] != NULL) {
+        idx = index(aux[0], q, start, end);
+        if (T[l-1][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
+                res[i].value = (aux[0][i].value + q - T[l-1][idx][i].value) % q;
             }
             return 1; /* true */
         }
 
         /* otherwise, stores it, and repeat */
-        T[l][idx] = malloc((n + 1) * sizeof(math_t));
+        T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i].value = aux[0][i].value;
+            T[l-1][idx][i].value = aux[0][i].value;
         }
     }
     return 0; /* should not happen */
@@ -234,13 +245,10 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
 
         /* if first elements already 0, returns it */
         if (zero(aux[0], (l - 1) * b, l * b)) {
-            printf("\tl = %i [ ", l);
             for (i = 0; i < n + 1; ++i) {
-                printf("%lu ", aux[0][i].value);
                 res[i].value = aux[0][i].value;
                 sample[i].value = aux[0][i].value;
             }
-            printf("]\n");
             tab->states[l] = -1;
             return 1; /* true */
         }

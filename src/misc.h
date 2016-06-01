@@ -8,6 +8,8 @@
 #ifndef MISC_H_
 #define MISC_H_
 
+#define MAX_SAMPLE_DIGIT 6
+
 #include <stdio.h>
 #include "math.h"
 

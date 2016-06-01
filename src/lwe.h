@@ -13,6 +13,11 @@
 
 #include "math.h"
 
+typedef struct {
+    int n;
+    long q;
+} lwe_t;
+
 extern long * secret;
 extern double sigma;
 

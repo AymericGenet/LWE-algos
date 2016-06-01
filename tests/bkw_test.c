@@ -15,7 +15,7 @@
 
 char * test_bkw_lf1() {
     size_t i, j, k;
-    int n, b, a;
+    int n, b, a, d;
     long q, depth;
     math_t * res;
     math_t ** aux;
@@ -24,6 +24,7 @@ char * test_bkw_lf1() {
     /* init  */
     n = 9, q = 5, b = 3;
     a = n/b;
+    d = 1;
     depth = pow(q, b);
 
     secret = malloc(n * sizeof(long));
@@ -48,27 +49,36 @@ char * test_bkw_lf1() {
     }
 
     /* draws a sample when l = 0 */
-    bkw_lf1(res, n, q, b, 0, T, aux);
+    bkw_lf1(res, n, q, b, d, 0, T, aux);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n + 1; ++i) {
         printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 
     printf("\n");
 
     /* draws a sample when l = 1 */
-    bkw_lf1(res, n, q, b, 1, T, aux);
+    bkw_lf1(res, n, q, b, d, 1, T, aux);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n + 1; ++i) {
         printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 
     printf("\n");
 
     /* draws a sample when l = 2 */
-    bkw_lf1(res, n, q, b, 2, T, aux);
+    bkw_lf1(res, n, q, b, d, 2, T, aux);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n + 1; ++i) {
+        printf("\tres[%i] = %lu\n", i, res[i].value);
+    }
+
+    printf("\n");
+
+    /* draws a sample when l = a */
+    bkw_lf1(res, n, q, b, d, a, T, aux);
+
+    for (i = 0; i < n + 1; ++i) {
         printf("\tres[%i] = %lu\n", i, res[i].value);
     }
 

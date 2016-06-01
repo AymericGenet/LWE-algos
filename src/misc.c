@@ -18,9 +18,9 @@ int open_table(FILE ** file, char * path) {
 
 int read_sample(math_t * res, FILE * file, long q, int n) {
     size_t i, j;
-    char num[128], c;
+    char num[MAX_SAMPLE_DIGIT + 1], c;
 
-    memset(num, 0, 128);
+    memset(num, 0, MAX_SAMPLE_DIGIT + 1);
     j = 0;
     i = 0;
     do {
@@ -29,18 +29,18 @@ int read_sample(math_t * res, FILE * file, long q, int n) {
         case ' ':
             num[j] = '\0';
             res[i].value = strtol(num, NULL, 10);
-            memset(num, 0, 128);
+            memset(num, 0, MAX_SAMPLE_DIGIT + 1);
             i++;
             j = 0;
             break;
 
         case '\n':
             res[i].value = strtol(num, NULL, 10);
-            memset(num, 0, 128);
+            memset(num, 0, MAX_SAMPLE_DIGIT + 1);
             return 1; /* true */
 
         default:
-            if (j >= 128) {
+            if (j > MAX_SAMPLE_DIGIT) {
                 return 0;
             }
             num[j] = c;
@@ -55,7 +55,8 @@ int append_sample(FILE * file, math_t * vec, int n) {
     size_t i;
     int success;
 
-    for (i = 0; i < n; ++i) {
+    success = 1; /* true */
+    for (i = 0; success && i < n; ++i) {
         success = fprintf(file, "%lu%c", vec[i].value, (i == n - 1) ? '\n' : ' ');
     }
 
