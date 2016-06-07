@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 
-int bkw_mem_lf1(math_t * res, int n, long q, int b, int l, FILE ** table,
+int bkw_mem_lf1(vec_t res, int n, long q, int b, int l, FILE ** table,
                 math_t ** aux) {
     size_t i;
 
@@ -31,14 +31,14 @@ int bkw_mem_lf1(math_t * res, int n, long q, int b, int l, FILE ** table,
         /* if first elements already 0, returns it */
         if (zero(aux[0], (l - 1) * b, l * b)) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = aux[0][i].value;
+                res[i] = aux[0][i];
             }
             return 1; /* true */
         }
 
         /* negates sample */
         for (i = 0; i < n + 1; ++i) {
-            aux[1][i].value = (q - aux[0][i].value) % q;
+            aux[1][i] = (q - aux[0][i]) % q;
         }
 
         /* checks for collision for either a or -a */
@@ -46,13 +46,13 @@ int bkw_mem_lf1(math_t * res, int n, long q, int b, int l, FILE ** table,
         while (read_sample(aux[2], table[l - 1], q, n + 1)) {
             if (equals(aux[0], aux[2], (l-1) * b, l * b)) {
                 for (i = 0; i < n + 1; ++i) {
-                    res[i].value = (aux[1][i].value + aux[2][i].value) % q;
+                    res[i] = (aux[1][i] + aux[2][i]) % q;
                 }
                 return 1; /* true */
             }
             if (equals(aux[1], aux[2], (l-1) * b, l * b)) {
                 for (i = 0; i < n + 1; ++i) {
-                    res[i].value = (aux[0][i].value + aux[2][i].value) % q;
+                    res[i] = (aux[0][i] + aux[2][i]) % q;
                 }
                 return 1; /* true */
             }
@@ -64,10 +64,10 @@ int bkw_mem_lf1(math_t * res, int n, long q, int b, int l, FILE ** table,
     return 0; /* should not happen */
 }
 
-int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux) {
+int bkw_mem_lf2(vec_t res, int l, bkw_mem_t * bkw, math_t ** aux) {
     size_t i;
-    math_t * sample_pos;
-    math_t * sample_neg;
+    vec_t sample_pos;
+    vec_t sample_neg;
 
     /* if call to lwe_oracle */
     if (l == 0) {
@@ -89,13 +89,13 @@ int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux) {
         while (read_sample(aux[0], bkw->tables[l-1], bkw->q, bkw->n)) {
             if (equals(aux[0], sample_pos, (l-1) * bkw->b, l * bkw->b)) {
                 for (i = 0; i < bkw->n + 1; ++i) {
-                    res[i].value = (sample_neg[i].value + aux[0][i].value) % bkw->q;
+                    res[i] = (sample_neg[i] + aux[0][i]) % bkw->q;
                 }
                 return 1; /* true */
             }
             if (equals(aux[0], sample_neg, (l-1) * bkw->b, l * bkw->b)) {
                 for (i = 0; i < bkw->n + 1; ++i) {
-                    res[i].value = (aux[0][i].value + sample_pos[i].value) % bkw->q;
+                    res[i] = (aux[0][i] + sample_pos[i]) % bkw->q;
                 }
                 return 1; /* true */
             }
@@ -113,7 +113,7 @@ int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux) {
 
         /* negates sample */
         for (i = 0; i < bkw->n + 1; ++i) {
-            sample_neg[i].value = (bkw->q - sample_pos[i].value) % bkw->q;
+            sample_neg[i] = (bkw->q - sample_pos[i]) % bkw->q;
         }
 
         /* resets reading pointer */
@@ -122,7 +122,7 @@ int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux) {
         /* if first elements already 0, returns it */
         if (zero(sample_pos, (l-1) * bkw->b, l * bkw->b)) {
             for (i = 0; i < bkw->n + 1; ++i) {
-                res[i].value = sample_pos[i].value;
+                res[i] = sample_pos[i];
             }
 
             return 1; /* true */
@@ -132,13 +132,13 @@ int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux) {
         while (read_sample(aux[0], bkw->tables[l-1], bkw->q, bkw->n)) {
             if (equals(aux[0], sample_pos, (l-1) * bkw->b, l * bkw->b)) {
                 for (i = 0; i < bkw->n + 1; ++i) {
-                    res[i].value = (sample_neg[i].value + aux[0][i].value) % bkw->q;
+                    res[i] = (sample_neg[i] + aux[0][i]) % bkw->q;
                 }
                 return 1; /* true */
             }
             if (equals(aux[0], sample_neg, (l-1) * bkw->b, l * bkw->b)) {
                 for (i = 0; i < bkw->n + 1; ++i) {
-                    res[i].value = (aux[0][i].value + sample_pos[i].value) % bkw->q;
+                    res[i] = (aux[0][i] + sample_pos[i]) % bkw->q;
                 }
                 return 1; /* true */
             }

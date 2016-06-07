@@ -24,7 +24,7 @@ int init_random() {
 
 int read_random(math_t * dest) {
     int success;
-    success = read(devRandom, dest->bytes, sizeof dest->bytes);
+    success = read(devRandom, dest, sizeof *dest);
     return success;
 }
 
@@ -56,7 +56,7 @@ long discrete_gaussian(double sigma, long q) {
         read_random(&x);
         read_drandom(&u);
         u = u * M;
-        sample = q/2 - ((signed long) (x.value % q));
+        sample = q/2 - ((signed long) (x % q));
     } while(u >= discrete_gaussian_pdf(sample, sigma, q));
     return sample;
 }
@@ -111,7 +111,7 @@ long uniform(double sigma, long q) {
 
     read_random(&tmp);
 
-    return (((signed long) tmp.value) % beta) % q;
+    return (((signed long) tmp) % beta) % q;
 }
 
 double uniform_pdf(long x, double sigma, long q) {
@@ -122,21 +122,21 @@ double uniform_pdf(long x, double sigma, long q) {
     return (x > -beta && x < beta) ? 1/beta : 0;
 }
 
-size_t index(math_t * elem, long q, int a, int b) {
+size_t index(vec_t elem, long q, int a, int b) {
     size_t i, idx;
     unsigned long basis;
 
     idx = 0;
     basis = 1;
     for (i = a; i < b; ++i) {
-        idx += basis*elem[i].value;
+        idx += basis*elem[i];
         basis *= q;
     }
 
     return idx;
 }
 
-void unindex(math_t * res, size_t idx, long q, int a, int b) {
+void unindex(vec_t res, size_t idx, long q, int a, int b) {
     int i, index;
     long basis, count;
 
@@ -150,26 +150,26 @@ void unindex(math_t * res, size_t idx, long q, int a, int b) {
         if (index - count*basis != 0) {
             count--;
         }
-        res[i].value = count;
+        res[i] = count;
         index -= basis*count;
         basis /= q;
     }
 }
 
-int zero(math_t * elem, int a, int b) {
+int zero(vec_t elem, int a, int b) {
     size_t i;
     for (i = a; i < b; ++i) {
-        if (elem[i].value != 0) {
+        if (elem[i] != 0) {
             return 0; /* false */
         }
     }
     return 1; /* true */
 }
 
-int equals(math_t * u, math_t * v, int a, int b) {
+int equals(vec_t u, vec_t v, int a, int b) {
     size_t i;
     for (i = a; i < b; ++i) {
-        if (u[i].value != v[i].value) {
+        if (u[i] != v[i]) {
             return 0; /* false */
         }
     }

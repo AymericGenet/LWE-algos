@@ -26,7 +26,7 @@ void bkw_create_table(table_t * tab, int n, long q, int b, int d) {
 
     tab->first = malloc(sizeof(node_t));
     tab->states = malloc(tab->a * sizeof(int));
-    tab->sample = malloc(tab->a * sizeof(math_t *));
+    tab->sample = malloc(tab->a * sizeof(vec_t));
 
     for (i = 0; i < tab->a; ++i) {
         tab->states[i] = 0;
@@ -56,9 +56,9 @@ void bkw_create_node(node_t * node, int a, long q, int b) {
     depth = pow(q, b);
 
     node->next = NULL;
-    node->T = malloc(a * sizeof(math_t **));
+    node->T = malloc(a * sizeof(vec_t *));
     for (i = 0; i < a; ++i) {
-        node->T[i] = malloc(depth * sizeof(math_t *));
+        node->T[i] = malloc(depth * sizeof(vec_t));
         for (j = 0; j < depth; ++j) {
             node->T[i][j] = NULL;
         }
@@ -86,11 +86,7 @@ void bkw_free_node(node_t * node, int a, int q, int b) {
     free(node);
 }
 
-int bkw_algo(math_t * res, int n, int b, int l) {
-    return 1;
-}
-
-int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
+int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
             math_t ** aux) {
     size_t i, idx;
     int start, end;
@@ -110,7 +106,7 @@ int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
         /* corner case */
         if (start >= end) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = aux[0][i].value;
+                res[i] = aux[0][i];
             }
             return 1; /* true */
         }
@@ -118,7 +114,7 @@ int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
         /* if first elements already 0, returns it */
         if (zero(aux[0], start, end)) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = aux[0][i].value;
+                res[i] = aux[0][i];
             }
             return 1; /* true */
         }
@@ -127,21 +123,21 @@ int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
         idx = index(aux[0], q, start, end);
         if (T[l-1][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l-1][idx][i].value) % q;
+                res[i] = (aux[0][i] + q - T[l-1][idx][i]) % q;
             }
             return 1; /* true */
         }
 
         /* negates it */
         for (i = 0; i < n + 1; ++i) {
-            aux[0][i].value = (q - aux[0][i].value) % q;
+            aux[0][i] = (q - aux[0][i]) % q;
         }
 
         /* checks if collision */
         idx = index(aux[0], q, start, end);
         if (T[l-1][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l-1][idx][i].value) % q;
+                res[i] = (aux[0][i] + q - T[l-1][idx][i]) % q;
             }
             return 1; /* true */
         }
@@ -149,20 +145,20 @@ int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
         /* otherwise, stores it, and repeat */
         T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
-            T[l-1][idx][i].value = aux[0][i].value;
+            T[l-1][idx][i] = aux[0][i];
         }
     }
     return 0; /* should not happen */
 }
 
-int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
+int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
             math_t ** aux) {
     size_t i, idx, n_idx;
     int layer;
     node_t * current;
     node_t * next;
-    math_t *** T;
-    math_t * sample;
+    vec_t ** T;
+    vec_t sample;
 
     /* if call to lwe_oracle */
     if (l == 0) {
@@ -191,21 +187,21 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         idx = index(sample, q, (l - 1) * b, l * b);
         if (T[l][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (sample[i].value + q - T[l][idx][i].value) % q;
+                res[i] = (sample[i] + q - T[l][idx][i]) % q;
             }
             return 1; /* true */
         }
 
         /* negates it */
         for (i = 0; i < n + 1; ++i) {
-            aux[0][i].value = (q - sample[i].value) % q;
+            aux[0][i] = (q - sample[i]) % q;
         }
 
         /* checks if collision */
         n_idx = index(aux[0], q, (l - 1) * b, l * b);
         if (T[l][n_idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l][n_idx][i].value) % q;
+                res[i] = (aux[0][i] + q - T[l][n_idx][i]) % q;
             }
             return 1; /* true */
         }
@@ -213,7 +209,7 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         /* otherwise, stores it */
         T[l][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i].value = sample[i].value;
+            T[l][idx][i] = sample[i];
         }
     }
     /* otherwise, if not first call, creates new layer and puts sample in it */
@@ -226,7 +222,7 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         idx = index(sample, q, (l - 1) * b, l * b);
         T[l][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i].value = sample[i].value;
+            T[l][idx][i] = sample[i];
         }
     }
     /* upon first call */
@@ -246,8 +242,8 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         /* if first elements already 0, returns it */
         if (zero(aux[0], (l - 1) * b, l * b)) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = aux[0][i].value;
-                sample[i].value = aux[0][i].value;
+                res[i] = aux[0][i];
+                sample[i] = aux[0][i];
             }
             tab->states[l] = -1;
             return 1; /* true */
@@ -257,23 +253,23 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         idx = index(aux[0], q, (l - 1) * b, l * b);
         if (T[l][idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l][idx][i].value) % q;
-                sample[i].value = aux[0][i].value;
+                res[i] = (aux[0][i] + q - T[l][idx][i]) % q;
+                sample[i] = aux[0][i];
             }
             return 1; /* true */
         }
 
         /* negates it */
         for (i = 0; i < n + 1; ++i) {
-            aux[0][i].value = (q - aux[0][i].value) % q;
+            aux[0][i] = (q - aux[0][i]) % q;
         }
 
         /* checks if collision */
         n_idx = index(aux[0], q, (l - 1) * b, l * b);
         if (T[l][n_idx] != NULL) {
             for (i = 0; i < n + 1; ++i) {
-                res[i].value = (aux[0][i].value + q - T[l][n_idx][i].value) % q;
-                sample[i].value = aux[0][i].value;
+                res[i] = (aux[0][i] + q - T[l][n_idx][i]) % q;
+                sample[i] = aux[0][i];
             }
             return 1; /* true */
         }
@@ -281,13 +277,13 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
         /* otherwise, stores it, and repeat */
         T[l][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i].value = (q - aux[0][i].value) % q;
+            T[l][idx][i] = (q - aux[0][i]) % q;
         }
     }
     return 0;
 }
 
-void bkw_hypo_testing(math_t * v, math_t ** F, int d, int m, long q,
+void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
                       double sigma, math_t ** aux) {
     int i;
     size_t j;
@@ -304,48 +300,48 @@ void bkw_hypo_testing(math_t * v, math_t ** F, int d, int m, long q,
 
     /* aux[0][i] = first coordinate of a_i */
     for (i = 0; i < m; ++i) {
-        aux[0][i].value = F[i][0].value;
+        aux[0][i] = F[i][0];
     }
 
     best = 0.0;
     /* foreach v (aux[1]) in Z_q^d, starting at v = (1 0 0 0...) */
-    for (aux[1][0].value = 1; aux[1][d - 2].value != q; ) {
+    for (aux[1][0] = 1; aux[1][d - 2] != q; ) {
         /* foreach sample, update S[v] with a_i - c_i */
         current = 0.0;
         for (i = 0; i < m; ++i) {
             /* S[v]_i = W(aux[0][i] - c_i) */
-            current += log_j[(aux[0][i].value - F[i][d - 1].value + q) % q];
+            current += log_j[(aux[0][i] - F[i][d - 1] + q) % q];
             /* aux[0][i] += first coordinate of a_i */
-            aux[0][i].value = (aux[0][i].value + F[i][0].value) % q;
+            aux[0][i] = (aux[0][i] + F[i][0]) % q;
         }
         if (current > best) {
             for (i = 0; i < d - 1; ++i) {
-                v[i].value = aux[1][i].value;
+                v[i] = aux[1][i];
             }
             best = current;
         }
 
         /* increases v by (1 0 0 0...) */
-        aux[1][0].value += 1;
+        aux[1][0] += 1;
 
         /* when v becomes (q 0 0 0...), increases the next coordinates,
         repeats the process if next coordinates also hit q (max). */
-        for (i = 0; aux[1][i].value >= q && i < d - 2 ; ++i) {
-            aux[1][i].value = 0;
+        for (i = 0; aux[1][i] >= q && i < d - 2 ; ++i) {
+            aux[1][i] = 0;
             /* if there is one coordinate after this one */
             if (i + 1 < d - 1) {
-                aux[1][i + 1].value += 1;
+                aux[1][i + 1] += 1;
                 for (j = 0; j < m; ++j) {
-                    aux[0][j].value = aux[0][j].value + F[j][i + 1].value;
+                    aux[0][j] = aux[0][j] + F[j][i + 1];
                 }
             } else {
-                aux[1][i].value = q; /* to get outside of the loop */
+                aux[1][i] = q; /* to get outside of the loop */
             }
         }
     }
 }
 
-void bkw_fft(math_t * v, math_t ** F, int d, int m, long q) {
+void bkw_fft(vec_t v, vec_t * F, int d, int m, long q) {
     size_t i, j, idx, size;
     double best;
     int * n;
@@ -372,10 +368,10 @@ void bkw_fft(math_t * v, math_t ** F, int d, int m, long q) {
     for (i = 0; i < m; ++i) {
         idx = 0;
         for (j = 0; j < d - 1; ++j) {
-            idx = F[i][j].value + q*idx;
+            idx = F[i][j] + q*idx;
         }
-        in[idx][0] += cos(2 * PI_VAL * F[i][d - 1].value /((double) q));
-        in[idx][1] += sin(2 * PI_VAL * F[i][d - 1].value /((double) q));
+        in[idx][0] += cos(2 * PI_VAL * F[i][d - 1] /((double) q));
+        in[idx][1] += sin(2 * PI_VAL * F[i][d - 1] /((double) q));
     }
 
     /* creates the output array */
@@ -397,8 +393,8 @@ void bkw_fft(math_t * v, math_t ** F, int d, int m, long q) {
 
     /* recovers the vector and puts it in v */
     for (i = 0; i < d - 1; ++i) {
-        v[d - 2 - i].value = idx % q;
-        idx = (idx - v[d - 2 - i].value)/q;
+        v[d - 2 - i] = idx % q;
+        idx = (idx - v[d - 2 - i])/q;
     }
 
     /* frees the memory for fft */

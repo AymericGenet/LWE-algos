@@ -28,7 +28,7 @@ typedef struct node_t node_t;
 
 struct node_t {
     node_t * next;
-    math_t *** T;
+    vec_t ** T;
 };
 
 /*
@@ -38,7 +38,7 @@ struct node_t {
 typedef struct {
     node_t * first;
     int * states;
-    math_t ** sample;
+    vec_t * sample;
 
     int n, b, a, d;
     long q;
@@ -51,12 +51,6 @@ void bkw_free_table(table_t * tab);
 void bkw_create_node(node_t * node, int a, long q, int b);
 
 void bkw_free_node(node_t * node, int a, int q, int b);
-
-/*
- * Runs the BKW algorithm (to be completed...)
- */
-
-int bkw_algo(math_t * res, int n, int b, int l);
 
 /*
  * Draws a pair (a, c) from the lwe_oracle() such that the components between
@@ -74,7 +68,7 @@ int bkw_algo(math_t * res, int n, int b, int l);
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
+int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
             math_t ** aux);
 
 /*
@@ -91,7 +85,7 @@ int bkw_lf1(math_t * res, int n, long q, int b, int d, int l, math_t *** T,
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
+int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
             math_t ** aux);
 
 
@@ -111,14 +105,14 @@ int bkw_lf2(math_t * res, int n, long q, int b, int l, table_t * tab,
  *    - aux[1] : [d - 1]
  */
 
-void bkw_hypo_testing(math_t * v, math_t ** F, int d, int m, long q,
+void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
                       double sigma, math_t ** aux);
 
 /*
  * Solves an LWE instance with multi-dimensional fast Fourier transforms.
  */
 
-void bkw_fft(math_t * v, math_t ** F, int d, int m, long q);
+void bkw_fft(vec_t v, vec_t * F, int d, int m, long q);
 
 /*
  * Frees the precomputation of the logarithms in bkw_hypo_testing(). This should

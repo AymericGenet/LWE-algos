@@ -17,9 +17,9 @@ char * test_bkw_lf1() {
     size_t i, j, k;
     int n, b, a, d;
     long q, depth;
-    math_t * res;
+    vec_t res;
+    vec_t ** T;
     math_t ** aux;
-    math_t *** T;
 
     /* init  */
     n = 9, q = 5, b = 3;
@@ -40,19 +40,19 @@ char * test_bkw_lf1() {
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     res = calloc((n + 1), sizeof(math_t));
-    aux = malloc(a * sizeof(math_t *));
-    T = malloc(a * sizeof(math_t **));
+    aux = malloc(a * sizeof(vec_t));
+    T = malloc(a * sizeof(vec_t *));
 
     for (i = 0; i < a; ++i) {
         aux[i] = calloc((n + 1), sizeof(math_t));
-        T[i] = calloc(depth, sizeof(math_t *));
+        T[i] = calloc(depth, sizeof(vec_t));
     }
 
     /* draws a sample when l = 0 */
     bkw_lf1(res, n, q, b, d, 0, T, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -61,7 +61,7 @@ char * test_bkw_lf1() {
     bkw_lf1(res, n, q, b, d, 1, T, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -70,7 +70,7 @@ char * test_bkw_lf1() {
     bkw_lf1(res, n, q, b, d, 2, T, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -79,7 +79,7 @@ char * test_bkw_lf1() {
     bkw_lf1(res, n, q, b, d, a, T, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n\t### Table T[a][q^b] state ###\n\n");
@@ -88,7 +88,7 @@ char * test_bkw_lf1() {
             if (T[i][j] != NULL) {
                 printf("\t[ ");
                 for (k = 0; k < n + 1; ++k) {
-                    printf("%lu ", T[i][j][k].value);
+                    printf("%lu ", T[i][j][k]);
                 }
                 printf("]\n");
             }
@@ -117,11 +117,11 @@ char * test_bkw_lf2() {
     size_t i, j, k, l;
     int n, b, a, d;
     long q, depth;
-    math_t * res;
+    vec_t res;
     math_t ** aux;
     table_t * tab;
     node_t * curr;
-    math_t *** T;
+    vec_t ** T;
 
     /* init  */
     n = 9, q = 5, b = 3, d = 2;
@@ -154,7 +154,7 @@ char * test_bkw_lf2() {
     bkw_lf2(res, n, q, b, 0, tab, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -163,7 +163,7 @@ char * test_bkw_lf2() {
     bkw_lf2(res, n, q, b, 1, tab, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -180,7 +180,7 @@ char * test_bkw_lf2() {
     bkw_lf2(res, n, q, b, 2, tab, aux);
 
     for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     curr = tab->first;
@@ -193,7 +193,7 @@ char * test_bkw_lf2() {
                 if (T[i][j] != NULL) {
                     printf("\t[ ");
                     for (k = 0; k < n + 1; ++k) {
-                        printf("%lu ", T[i][j][k].value);
+                        printf("%lu ", T[i][j][k]);
                     }
                     printf("]\n");
                 }
@@ -223,15 +223,15 @@ char * test_bkw_hypo_testing() {
     int d, m;
     long q;
     math_t ** aux;
-    math_t ** F;
-    math_t * v;
+    vec_t * F;
+    vec_t v;
 
     /* init */
     sigma = 1;
     m = 5, q = 5, d = 4;
 
     aux = malloc(2 * sizeof(math_t *));
-    F = malloc(m * sizeof(math_t *));
+    F = malloc(m * sizeof(vec_t));
     v = calloc(d - 1, sizeof(math_t));
 
     for (i = 0; i < m; ++i) {
@@ -242,20 +242,20 @@ char * test_bkw_hypo_testing() {
     aux[1] = calloc((d - 1), sizeof(math_t));
 
     /* samples */
-    F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3;
-    F[0][3].value = (1*1 + 2*2 + 3*3) % q; /* c_0 */
+    F[0][0] = 1; F[0][1] = 2; F[0][2] = 3;
+    F[0][3] = (1*1 + 2*2 + 3*3) % q; /* c_0 */
 
-    F[1][0].value = 4; F[1][1].value = 3; F[1][2].value = 2;
-    F[1][3].value = (4*1 + 3*2 + 2*3) % q; /* c_1 */
+    F[1][0] = 4; F[1][1] = 3; F[1][2] = 2;
+    F[1][3] = (4*1 + 3*2 + 2*3) % q; /* c_1 */
 
-    F[2][0].value = 2; F[2][1].value = 3; F[2][2].value = 4;
-    F[2][3].value = (2*1 + 3*2 + 4*3) % q; /* c_2 */
+    F[2][0] = 2; F[2][1] = 3; F[2][2] = 4;
+    F[2][3] = (2*1 + 3*2 + 4*3) % q; /* c_2 */
 
-    F[3][0].value = 1; F[3][1].value = 4; F[3][2].value = 2;
-    F[3][3].value = (1*1 + 4*2 + 2*3) % q; /* c_3 */
+    F[3][0] = 1; F[3][1] = 4; F[3][2] = 2;
+    F[3][3] = (1*1 + 4*2 + 2*3) % q; /* c_3 */
 
-    F[4][0].value = 3; F[4][1].value = 3; F[4][2].value = 4;
-    F[4][3].value = (3*1 + 3*2 + 4*3) % q; /* c_4 */
+    F[4][0] = 3; F[4][1] = 3; F[4][2] = 4;
+    F[4][3] = (3*1 + 3*2 + 4*3) % q; /* c_4 */
 
     /* runs hypothesis testing */
     bkw_hypo_testing(v, F, d, m, q, sigma, aux);
@@ -263,7 +263,7 @@ char * test_bkw_hypo_testing() {
     /* checks result */
     printf("\tAccording to L-L  v = [ ");
     for (i = 0; i < d - 1; ++i) {
-        printf("%lu ", v[i].value);
+        printf("%lu ", v[i]);
     }
     printf("]\n");
     printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");
@@ -289,13 +289,13 @@ char * test_bkw_fft() {
     size_t i;
     int d, m;
     long q;
-    math_t ** F;
-    math_t * v;
+    vec_t * F;
+    vec_t v;
 
     /* init */
     m = 5, q = 5, d = 4;
 
-    F = malloc(m * sizeof(math_t *));
+    F = malloc(m * sizeof(vec_t));
     v = calloc((d - 1), sizeof(math_t));
 
     for (i = 0; i < m; ++i) {
@@ -303,20 +303,20 @@ char * test_bkw_fft() {
     }
 
     /* samples */
-    F[0][0].value = 1; F[0][1].value = 2; F[0][2].value = 3;
-    F[0][3].value = (1*1 + 2*2 + 3*3) % q; /* c_0 */
+    F[0][0] = 1; F[0][1] = 2; F[0][2] = 3;
+    F[0][3] = (1*1 + 2*2 + 3*3) % q; /* c_0 */
 
-    F[1][0].value = 4; F[1][1].value = 3; F[1][2].value = 2;
-    F[1][3].value = (4*1 + 3*2 + 2*3) % q; /* c_1 */
+    F[1][0] = 4; F[1][1] = 3; F[1][2] = 2;
+    F[1][3] = (4*1 + 3*2 + 2*3) % q; /* c_1 */
 
-    F[2][0].value = 2; F[2][1].value = 3; F[2][2].value = 4;
-    F[2][3].value = (2*1 + 3*2 + 4*3) % q; /* c_2 */
+    F[2][0] = 2; F[2][1] = 3; F[2][2] = 4;
+    F[2][3] = (2*1 + 3*2 + 4*3) % q; /* c_2 */
 
-    F[3][0].value = 1; F[3][1].value = 4; F[3][2].value = 2;
-    F[3][3].value = (1*1 + 4*2 + 2*3) % q; /* c_3 */
+    F[3][0] = 1; F[3][1] = 4; F[3][2] = 2;
+    F[3][3] = (1*1 + 4*2 + 2*3) % q; /* c_3 */
 
-    F[4][0].value = 3; F[4][1].value = 3; F[4][2].value = 4;
-    F[4][3].value = (3*1 + 3*2 + 4*3) % q; /* c_4 */
+    F[4][0] = 3; F[4][1] = 3; F[4][2] = 4;
+    F[4][3] = (3*1 + 3*2 + 4*3) % q; /* c_4 */
 
     /* runs hypothesis testing with fft */
     bkw_fft(v, F, d, m, q);
@@ -324,7 +324,7 @@ char * test_bkw_fft() {
     /* checks result */
     printf("\tAccording to FFT  v = [ ");
     for (i = 0; i < d - 1; ++i) {
-        printf("%lu ", v[i].value);
+        printf("%lu ", v[i]);
     }
     printf("]\n");
     printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");

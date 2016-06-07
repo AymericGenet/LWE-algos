@@ -18,7 +18,7 @@ char * test_bkw_mem_lf1() {
     size_t i, j;
     int n, b, a;
     long q;
-    math_t * res;
+    vec_t res;
     math_t ** aux;
     FILE ** tables;
     char path[128];
@@ -55,7 +55,7 @@ char * test_bkw_mem_lf1() {
     bkw_mem_lf1(res, n, q, b, 0, tables, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -64,7 +64,7 @@ char * test_bkw_mem_lf1() {
     bkw_mem_lf1(res, n, q, b, 1, tables, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -73,7 +73,7 @@ char * test_bkw_mem_lf1() {
     bkw_mem_lf1(res, n, q, b, 2, tables, aux);
 
     for (i = 0; i < n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     for (i = 0; i < a; ++i) {
@@ -82,7 +82,7 @@ char * test_bkw_mem_lf1() {
         while (read_sample(res, tables[i], q, n + 1)) {
             printf("\t[ ");
             for (j = 0; j < n + 1; ++j) {
-                printf("%lu ", res[j].value);
+                printf("%lu ", res[j]);
             }
             printf("]\n");
         }
@@ -108,7 +108,7 @@ char * test_bkw_mem_lf1() {
 char * test_bkw_mem_lf2() {
     size_t i, j;
     bkw_mem_t * bkw;
-    math_t * res;
+    vec_t res;
     math_t ** aux;
     char path[128];
 
@@ -120,8 +120,8 @@ char * test_bkw_mem_lf2() {
     bkw->d = 2;
     bkw->a = bkw->n/bkw->b;
     bkw->tables = malloc(bkw->a * sizeof(FILE *));
-    bkw->sample_pos = calloc(bkw->a, sizeof(math_t *));
-    bkw->sample_neg = calloc(bkw->a, sizeof(math_t *));
+    bkw->sample_pos = calloc(bkw->a, sizeof(vec_t));
+    bkw->sample_neg = calloc(bkw->a, sizeof(vec_t));
 
     secret = malloc(bkw->n * sizeof(long));
     secret[0] = 1;
@@ -148,7 +148,7 @@ char * test_bkw_mem_lf2() {
     bkw_mem_lf2(res, 0, bkw, aux);
 
     for (i = 0; i < bkw->n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -157,7 +157,7 @@ char * test_bkw_mem_lf2() {
     bkw_mem_lf2(res, 1, bkw, aux);
 
     for (i = 0; i < bkw->n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     printf("\n");
@@ -176,7 +176,7 @@ char * test_bkw_mem_lf2() {
     bkw_mem_lf2(res, 2, bkw, aux);
 
     for (i = 0; i < bkw->n + 1; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i].value);
+        printf("\tres[%i] = %lu\n", i, res[i]);
     }
 
     for (i = 0; i < bkw->a; ++i) {
@@ -185,7 +185,7 @@ char * test_bkw_mem_lf2() {
         while (read_sample(res, bkw->tables[i], bkw->q, bkw->n + 1)) {
             printf("\t[ ");
             for (j = 0; j < bkw->n + 1; ++j) {
-                printf("%lu ", res[j].value);
+                printf("%lu ", res[j]);
             }
             printf("]\n");
         }

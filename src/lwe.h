@@ -28,7 +28,7 @@ extern double sigma;
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
 */
 
-int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig);
+int lwe_oracle_predef(vec_t res, long * s, int n, long q, double sig);
 
 /*
  * Draws a pair (a, c) such that a is uniformly in Z_q^n, and c = <a, s> + e
@@ -40,6 +40,6 @@ int lwe_oracle_predef(math_t * res, long * s, int n, long q, double sig);
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
  */
 
-int lwe_oracle(math_t * res, int n, long q);
+int lwe_oracle(vec_t res, int n, long q);
 
 #endif /* LWE_H_ */

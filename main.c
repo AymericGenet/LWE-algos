@@ -33,12 +33,12 @@ int main(int argc, char *argv[]) {
     long q;
     unsigned long depth;
     double lf1_sec = 0.0, ll_sec = 0.0, fft_sec = 0.0;
-    math_t * guess;
-    math_t * vec;
-    math_t ** res;
-    math_t ** F;
+    vec_t guess;
+    vec_t vec;
+    vec_t * res;
+    vec_t * F;
+    vec_t ** T;
     math_t *** aux;
-    math_t *** T;
 
     init_random();
 
@@ -52,9 +52,9 @@ int main(int argc, char *argv[]) {
     }
 
     for (k = 0; k < MAX_RANGE; ++k) {
-        T = malloc(a * sizeof(math_t **));
-        F = malloc(m * sizeof(math_t *));
-        res = malloc(m * sizeof(math_t *));
+        T = malloc(a * sizeof(vec_t *));
+        F = malloc(m * sizeof(vec_t));
+        res = malloc(m * sizeof(vec_t));
         guess = calloc((d - 1), sizeof(math_t));
         vec = malloc(n * sizeof(math_t));
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < a; ++i) {
             aux[0][i] = calloc((n + 1), sizeof(math_t));
-            T[i] = calloc(depth, sizeof(math_t *));
+            T[i] = calloc(depth, sizeof(vec_t));
             if (T[i] == NULL) {
                 fprintf(stderr, "main: could not allocate enough memory\n");
                 exit(1);
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         secret = malloc(n * sizeof(long));
         for (i = 0; i < n; ++i) {
             read_random(vec + i);
-            secret[i] = vec[i].value % q;
+            secret[i] = vec[i] % q;
         }
         sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
         /* reduces samples */
         for (i = 0; i < m; ++i) {
             for (j = 0; j < d; ++j) {
-                F[i][j].value = res[i][j + n + 1 - d].value;
+                F[i][j] = res[i][j + n + 1 - d];
             }
         }
 
@@ -110,14 +110,14 @@ int main(int argc, char *argv[]) {
 
         /* runs hypothesis testing */
         time = clock();
-        bkw_hypo_testing(guess, F, d, m, q, sqrt(pow(2, a - 1)) * sigma, aux[1]);
+        bkw_hypo_testing(guess, F, d, m, q, sqrt(pow(2, a)) * sigma, aux[1]);
         time = clock() - time;
         ll_sec += time/((double) CLOCKS_PER_SEC);
 
         /* checks correct answer */
         successes[0]++;
         for (i = 0; i < d - 1; ++i) {
-            if (guess[i].value != secret[n - d + 1 + i]) {
+            if (guess[i] != secret[n - d + 1 + i]) {
                 successes[0]--;
                 break;
             }
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
         /* checks correct answer */
         successes[1]++;
         for (i = 0; i < d - 1; ++i) {
-            if (guess[i].value != secret[n - d + 1 + i]) {
+            if (guess[i] != secret[n - d + 1 + i]) {
                 successes[1]--;
                 break;
             }
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
     printf("\n\taverage time for log-likelihood     : %f s", ll_sec / MAX_RANGE);
     printf("\n\taverage time for Fourier transform  : %f s", fft_sec / MAX_RANGE);
 
-    printf("\n\nPoutcha c'est la meilleure <3\n");
+    printf("\n\n");
     close_random();
     return 0;
 }

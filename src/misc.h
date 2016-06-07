@@ -15,9 +15,9 @@
 
 int open_table(FILE ** file, char * path);
 
-int read_sample(math_t * res, FILE * file, long q, int n);
+int read_sample(vec_t res, FILE * file, long q, int n);
 
-int append_sample(FILE * file, math_t * vec, int n);
+int append_sample(FILE * file, vec_t vec, int n);
 
 int close_table(FILE ** file);
 

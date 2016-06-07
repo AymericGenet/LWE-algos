@@ -16,14 +16,13 @@
 #define BKW_MEM_H_
 
 #include "math.h"
-#include "fftw3.h"
 #include <stdio.h>
 
 
 typedef struct {
     FILE ** tables;
-    math_t ** sample_pos;
-    math_t ** sample_neg;
+    vec_t * sample_pos;
+    vec_t * sample_neg;
 
     int n, b, a, d;
     long q;
@@ -33,7 +32,7 @@ typedef struct {
  * Runs the BKW algorithm (to be completed...)
  */
 
-int bkw_mem_algo(math_t * res, int n, int b, int l);
+int bkw_mem_algo(vec_t res, int n, int b, int l);
 
 /*
  * Draws a pair (a, c) from the lwe_oracle() such that the components between
@@ -51,9 +50,9 @@ int bkw_mem_algo(math_t * res, int n, int b, int l);
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_mem_lf1(math_t * res, int n, long q, int b, int l, FILE ** table,
+int bkw_mem_lf1(vec_t res, int n, long q, int b, int l, FILE ** table,
                 math_t ** aux);
 
-int bkw_mem_lf2(math_t * res, int l, bkw_mem_t * bkw, math_t ** aux);
+int bkw_mem_lf2(vec_t res, int l, bkw_mem_t * bkw, math_t ** aux);
 
 #endif /* BKW_MEM_H_ */

@@ -12,12 +12,11 @@
 
 #define PI_VAL 3.14159265358979323846
 
-/* Represents an integer either as an array of bytes or a long value */
-/* FIXME : obsolete, change into unsigned long */
-typedef union {
-    unsigned char bytes[sizeof(long)];
-    unsigned long value;
-} math_t;
+/* Represents an element of Z_q */
+typedef unsigned long math_t;
+
+/* Represents a vector of elements of Z_q */
+typedef math_t * vec_t;
 
 /*
  * Initializes the reading of /dev/urandom/.
@@ -146,7 +145,7 @@ double uniform_pdf(long x, double sigma, long q);
  * @return The index of an array corresponding to the vector elements from [a, b]
  */
 
-size_t index(math_t * elem, long q, int a, int b);
+size_t index(vec_t elem, long q, int a, int b);
 
 /*
  * Translates an index of an array into vector elements in [a, b].
@@ -158,7 +157,7 @@ size_t index(math_t * elem, long q, int a, int b);
  * @param b Ending index
  */
 
-void unindex(math_t * res, size_t idx, long q, int a, int b);
+void unindex(vec_t res, size_t idx, long q, int a, int b);
 
 /*
  * Checks that the vector has zero elements between a and b.
@@ -170,9 +169,9 @@ void unindex(math_t * res, size_t idx, long q, int a, int b);
  *         otherwise
  */
 
-int zero(math_t * elem, int a, int b);
+int zero(vec_t elem, int a, int b);
 
-int equals(math_t * u, math_t * v, int a, int b);
+int equals(vec_t u, vec_t v, int a, int b);
 
 /*
  * Stand-alone C implementation of the error function erf(x)
