@@ -228,7 +228,7 @@ char * test_bkw_distrib() {
     double dist;
 
     /* init */
-    m = 10000;
+    m = 100;
     n = 6, q = 37, a = 4, d = 3;
     stats = calloc(m, sizeof(int));
 
@@ -267,11 +267,11 @@ char * test_bkw_distrib() {
     printf("\n");
     for (i = 0; i < q; ++i) {
         printf("%i : \t", i);
-        for (j = 0; j < stats[i]/10.0; ++j) {
+        for (j = 0; j < stats[i]/1.0; ++j) {
             printf("=");
         }
         dist = 0.0;
-        printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a - 1)) * (sigma / ((double) q)), q));
+        printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, q));
     }
     printf("\n");
 

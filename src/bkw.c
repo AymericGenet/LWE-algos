@@ -315,8 +315,9 @@ void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux) {
     if (log_j == NULL) {
         log_j = malloc(q * sizeof(double));
         for (i = 0; i < q; ++i) {
-            p = distributions[bkw.lwe.distrib](i, bkw.lwe.sig, q);
+            p = distributions[bkw.lwe.distrib](i > q/2 ? i - q : i, bkw.lwe.sig, q);
             log_j[i] = log(p) - log((pow(q, d-2) - p)/(double)(pow(q, d-1) - 1.0));
+            log_j[i] = log_j[i] / log(2.0);
         }
     }
 
@@ -332,15 +333,15 @@ void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux) {
         current = 0.0;
         for (i = 0; i < m; ++i) {
             /* S[v]_i = W(aux[0][i] - c_i) */
-            current += log_j[(aux[0][i] - F[i][d - 1] + q) % q];
+            current += log_j[(F[i][d - 1] - aux[0][i] + q) % q];
             /* aux[0][i] += first coordinate of a_i */
             aux[0][i] = (aux[0][i] + F[i][0]) % q;
         }
-        if (current > best) {
+        if (current/m > best) {
             for (i = 0; i < d - 1; ++i) {
                 v[i] = aux[1][i];
             }
-            best = current;
+            best = current/m;
         }
 
         /* increases v by (1 0 0 0...) */

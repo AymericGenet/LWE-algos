@@ -15,14 +15,14 @@
 #include <time.h>
 
 
-#define MAX_RANGE 2
+#define MAX_RANGE 1000
 
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
 int qs[] = {37, 53, 67, 83, 101, 127, 149};
 int as[] = {4, 4, 5, 5, 5, 5, 5};
 
 int idx = 0; /* from 0 to 8 */
-int m = 5;
+int m = 20;
 
 int main(int argc, char *argv[]) {
     size_t i, j, k;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     init_random();
 
     /* ================================ INIT ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 1;
+    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 2;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         }
         sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-        lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a)) * (sigma/q));
+        lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a-2)) * sigma);
         bkw_create(&bkw, lwe, a, d, m);
 
         /* runs algorithm to recover m samples */
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("For m = %i, n = %i, we have :\n\n", m, n);
-    printf("\t# of success : %i / %i\n", successes, MAX_RANGE);
+    printf("\t# of successes : %i / %i\n", successes, MAX_RANGE);
 
     printf("\n\taverage time for collecting samples : %f s", lf1_sec / MAX_RANGE);
     printf("\n\taverage time for solving part       : %f s", sol_sec / MAX_RANGE);

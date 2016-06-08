@@ -36,5 +36,6 @@ int lwe_oracle_predef(vec_t res, vec_t s, lwe_t lwe) {
 }
 
 int lwe_oracle(vec_t res, lwe_t lwe) {
+    lwe.sig = sigma;
     return lwe_oracle_predef(res, secret, lwe);
 }
