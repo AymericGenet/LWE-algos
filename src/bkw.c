@@ -11,42 +11,42 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <float.h>
 
 
 static double * log_j = NULL;
 
-void bkw_create_table(table_t * tab, int n, long q, int b, int d) {
+void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int d, long m) {
     size_t i;
 
-    tab->n = n;
-    tab->q = q;
-    tab->b = b;
-    tab->d = d;
-    tab->a = n/b;
+    bkw->lwe = lwe;
+    bkw->a = a;
+    bkw->b = (lwe.n/((double) a) + 0.5); /* cheap round */
+    bkw->d = d;
+    bkw->m = m;
 
-    tab->first = malloc(sizeof(node_t));
-    tab->states = malloc(tab->a * sizeof(int));
-    tab->sample = malloc(tab->a * sizeof(vec_t));
+    bkw->tab.first = malloc(sizeof(node_t));
+    bkw->tab.states = malloc(a * sizeof(int));
+    bkw->tab.sample = malloc(a * sizeof(vec_t));
 
-    for (i = 0; i < tab->a; ++i) {
-        tab->states[i] = 0;
-        tab->sample[i] = NULL;
+    for (i = 0; i < a; ++i) {
+        bkw->tab.states[i] = 0;
+        bkw->tab.sample[i] = NULL;
     }
 
-    bkw_create_node(tab->first, tab->a, tab->q, tab->b);
+    bkw_create_node(bkw->tab.first, a, lwe.q, bkw->b);
 }
 
-void bkw_free_table(table_t * tab) {
+void bkw_free(bkw_t * bkw) {
     size_t i;
 
-    for (i = 0; i < tab->a; ++i) {
-        free(tab->sample[i]);
+    for (i = 0; i < bkw->a; ++i) {
+        free(bkw->tab.sample[i]);
     }
 
-    free(tab->sample);
-    free(tab->states);
-    bkw_free_node(tab->first, tab->a, tab->q, tab->b);
-    free(tab);
+    free(bkw->tab.sample);
+    free(bkw->tab.states);
+    bkw_free_node(bkw->tab.first, bkw->a, bkw->lwe.q, bkw->b);
 }
 
 void bkw_create_node(node_t * node, int a, long q, int b) {
@@ -86,21 +86,30 @@ void bkw_free_node(node_t * node, int a, int q, int b) {
     free(node);
 }
 
-int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
-            math_t ** aux) {
+int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
+    int n, b, d;
+    long q;
     size_t i, idx;
     int start, end;
+    vec_t ** T;
+
+    if (l == 0) {
+        return lwe_oracle(res, bkw.lwe); /* TODO : time when verbose */
+    }
+
+    /* for visibility concerns */
+    n = bkw.lwe.n;
+    q = bkw.lwe.q;
+    b = bkw.b;
+    d = bkw.d;
+    T = bkw.tab.first->T;
 
     start = (l - 1) * b;
     end   = n - b * l > 0 ? l * b : n - d;
     while (1) {
         /* samples from previous layer */
-        if (l == 0) {
-            return lwe_oracle(res, n, q);
-        } else {
-            if (!bkw_lf1(aux[0], n, q, b, d, l - 1, T, aux + 1)) {
-                return 0; /* false */
-            }
+        if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {
+            return 0; /* false */
         }
 
         /* corner case */
@@ -151,10 +160,11 @@ int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
     return 0; /* should not happen */
 }
 
-int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
-            math_t ** aux) {
+int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     size_t i, idx, n_idx;
-    int layer;
+    int layer, n, b; /*, d; */
+    long q;
+    table_t * tab;
     node_t * current;
     node_t * next;
     vec_t ** T;
@@ -162,8 +172,15 @@ int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
 
     /* if call to lwe_oracle */
     if (l == 0) {
-        return lwe_oracle(res, n, q);
+        return lwe_oracle(res, bkw.lwe);
     }
+
+    /* for visibility concerns */
+    tab = &(bkw.tab);
+    n = bkw.lwe.n;
+    q = bkw.lwe.q;
+    b = bkw.b;
+    /* d = bkw.d; *//* TODO d reduction */
 
     /* finds layer at which the last sample was output */
     sample = tab->sample[l];
@@ -235,7 +252,7 @@ int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
     tab->states[l] = 0;
     while (1) {
         /* samples from previous layer */
-        if (!bkw_lf2(aux[0], n, q, b, l - 1, tab, aux + 1)) {
+        if (!bkw_lf2(aux[0], bkw, l - 1, aux + 1)) {
             return 0; /* false */
         }
 
@@ -283,18 +300,23 @@ int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
     return 0;
 }
 
-void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
-                      double sigma, math_t ** aux) {
-    int i;
+void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux) {
+    int i, d, m;
+    long q;
     size_t j;
     double p, best, current;
+
+    /* for visibility concerns */
+    q = bkw.lwe.q;
+    d = bkw.d + 1;
+    m = bkw.m;
 
     /* precomputes each value of log(j) */
     if (log_j == NULL) {
         log_j = malloc(q * sizeof(double));
         for (i = 0; i < q; ++i) {
-            p = rounded_gaussian_pdf(i, sigma, q, 10*d);
-            log_j[i] = log(p) - log((pow(q, d-1) - p)/(double)(pow(q, d) - 1.0));
+            p = distributions[bkw.lwe.distrib](i, bkw.lwe.sig, q);
+            log_j[i] = log(p) - log((pow(q, d-2) - p)/(double)(pow(q, d-1) - 1.0));
         }
     }
 
@@ -303,7 +325,7 @@ void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
         aux[0][i] = F[i][0];
     }
 
-    best = 0.0;
+    best = -DBL_MAX;
     /* foreach v (aux[1]) in Z_q^d, starting at v = (1 0 0 0...) */
     for (aux[1][0] = 1; aux[1][d - 2] != q; ) {
         /* foreach sample, update S[v] with a_i - c_i */
@@ -341,13 +363,19 @@ void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
     }
 }
 
-void bkw_fft(vec_t v, vec_t * F, int d, int m, long q) {
+void bkw_fft(vec_t v, vec_t * F, bkw_t bkw) {
     size_t i, j, idx, size;
+    long q;
     double best;
-    int * n;
+    int * n, d, m;
     fftw_complex * in;
     fftw_complex * out;
     fftw_plan plan_forward;
+
+    /* for visibility concerns */
+    q = bkw.lwe.q;
+    d = bkw.d + 1;
+    m = bkw.m;
 
     /* creates the input array */
     n = malloc((d - 1) * sizeof(int));
@@ -357,7 +385,7 @@ void bkw_fft(vec_t v, vec_t * F, int d, int m, long q) {
         size *= q;
         n[i] = q;
     }
-    in = fftw_malloc(sizeof(fftw_complex) * size );
+    in = fftw_malloc(sizeof(fftw_complex) * size);
 
     for (i = 0; i < size; ++i) {
         in[i][0] = 0.0;
@@ -398,6 +426,7 @@ void bkw_fft(vec_t v, vec_t * F, int d, int m, long q) {
     }
 
     /* frees the memory for fft */
+    /* TODO pre-allocate... maybe? */
     free(n);
     fftw_destroy_plan(plan_forward);
     fftw_free(in);

@@ -17,20 +17,23 @@ char * test_lwe_oracle_predef() {
     int n;
     vec_t pair;
     long q;
-    long * s;
+    vec_t s;
     double sig;
     size_t i;
+    lwe_t lwe;
 
     n = 3;
     q = 97;
     pair = malloc((n + 1) * sizeof(math_t));
-    s = malloc(n * sizeof(long));
+    s = malloc(n * sizeof(math_t));
     s[0] = 35;
     s[1] = 39;
     s[2] = 94;
     sig = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_oracle_predef(pair, s, n, q, sig);
+    lwe_create(&lwe, n, q, rounded_gaussian, sig);
+
+    lwe_oracle_predef(pair, s, lwe);
     printf("\n");
     for (i = 0; i < n; ++i) {
         printf("\ta[%i] = %lu\n", i, pair[i]);
@@ -48,17 +51,20 @@ char * test_lwe_oracle() {
     vec_t pair;
     long q;
     size_t i;
+    lwe_t lwe;
 
     n = 3;
     q = 97;
     pair = malloc((n + 1) * sizeof(math_t));
-    secret = malloc(n * sizeof(long));
+    secret = malloc(n * sizeof(math_t));
     secret[0] = 35;
     secret[1] = 39;
     secret[2] = 94;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_oracle_predef(pair, secret, n, q, sigma);
+    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
+
+    lwe_oracle(pair, lwe);
     printf("\n");
     for (i = 0; i < n; ++i) {
         printf("\ta[%i] = %lu\n", i, pair[i]);

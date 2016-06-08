@@ -16,10 +16,15 @@
 typedef struct {
     int n;
     long q;
+    distribution_t distrib;
+    double sig;
 } lwe_t;
 
-extern long * secret;
+extern vec_t secret;
 extern double sigma;
+
+
+void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig);
 
 /*
  * Takes secret s and puts in res an array containing the pair (a, c) such that
@@ -28,7 +33,7 @@ extern double sigma;
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
 */
 
-int lwe_oracle_predef(vec_t res, long * s, int n, long q, double sig);
+int lwe_oracle_predef(vec_t res, vec_t s, lwe_t lwe);
 
 /*
  * Draws a pair (a, c) such that a is uniformly in Z_q^n, and c = <a, s> + e
@@ -40,6 +45,6 @@ int lwe_oracle_predef(vec_t res, long * s, int n, long q, double sig);
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
  */
 
-int lwe_oracle(vec_t res, int n, long q);
+int lwe_oracle(vec_t res, lwe_t lwe);
 
 #endif /* LWE_H_ */

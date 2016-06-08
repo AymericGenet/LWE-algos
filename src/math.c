@@ -16,6 +16,9 @@
 #include <stdio.h>
 
 static int devRandom;
+double (*distributions[DISTRIB_NUMBER])(long, double, long) = {
+    discrete_gaussian_pdf, rounded_gaussian_pdf, uniform_pdf };
+
 
 int init_random() {
     devRandom = open("/dev/urandom", O_RDONLY);
@@ -46,19 +49,22 @@ int close_random() {
     return close(devRandom);
 }
 
-long discrete_gaussian(double sigma, long q) {
+long random_sample(distribution_t distrib, double sigma, long q) {
     double M, u;
-    math_t x;
-    long sample;
+    long sample, x;
+    double (*pdf)(long x, double sigma, long q);
 
-    M = discrete_gaussian_pdf(0, sigma, q);
+    pdf = distributions[distrib];
+    M = pdf(0, sigma, q);
     do {
-        read_random(&x);
+        read_drandom(&u);
+        x = u * q;
         read_drandom(&u);
         u = u * M;
-        sample = q/2 - ((signed long) (x % q));
-    } while(u >= discrete_gaussian_pdf(sample, sigma, q));
-    return sample;
+        sample = x > q/2 ? x - q : x;
+    } while(u >= pdf(sample, sigma, q));
+
+    return x;
 }
 
 double discrete_gaussian_pdf(long x, double sigma, long q) {
@@ -74,25 +80,13 @@ double discrete_gaussian_pdf(long x, double sigma, long q) {
     return result/sum;
 }
 
-long rounded_gaussian(double sigma, long q) {
-    double u1, u2, z0;
-    long result;
-
-    read_drandom(&u1);
-    read_drandom(&u2);
-    z0 = sigma * sqrt(-2 * log(u1)) * cos(2 * PI_VAL * u2);
-    result = ((int) (floor(z0 + 0.5))) % q;
-
-    return (result < 0) ? result + q : result;
-}
-
 double rounded_gaussian_cdf(double x, double sigma) {
     return 0.5 * (1 + custom_erf(x/sqrt(2*sigma*sigma)));
 }
 
-double rounded_gaussian_pdf(long x, double sigma, long q, long k) {
+double rounded_gaussian_pdf(long x, double sigma, long q) {
     double result;
-    int i;
+    int i, k = 10; /* FIXME */
 
     result = 0.0;
     for (i = -k; i <= k; ++i) {
@@ -103,23 +97,12 @@ double rounded_gaussian_pdf(long x, double sigma, long q, long k) {
     return result;
 }
 
-long uniform(double sigma, long q) {
-    int beta;
-    math_t tmp;
-
-    beta = (sqrt(12*sigma*sigma + 1) - 1)/2;
-
-    read_random(&tmp);
-
-    return (((signed long) tmp) % beta) % q;
-}
-
 double uniform_pdf(long x, double sigma, long q) {
     int beta;
 
     beta = (sqrt(12*sigma*sigma + 1) - 1)/2;
 
-    return (x > -beta && x < beta) ? 1/beta : 0;
+    return (x >= -beta && x <= beta) ? 1.0/(2*beta + 1) : 0.0;
 }
 
 size_t index(vec_t elem, long q, int a, int b) {

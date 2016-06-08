@@ -18,6 +18,18 @@ typedef unsigned long math_t;
 /* Represents a vector of elements of Z_q */
 typedef math_t * vec_t;
 
+/* Different choices of distribution, according to types of LWE noise */
+#define DISTRIB_NUMBER 3
+
+typedef enum {
+    discrete_gaussian,
+    rounded_gaussian,
+    uniform
+} distribution_t;
+
+extern double (*distributions[DISTRIB_NUMBER])(long, double, long);
+
+
 /*
  * Initializes the reading of /dev/urandom/.
  *
@@ -55,15 +67,7 @@ int read_drandom(double * dest);
 
 int close_random();
 
-/*
- * Samples a number from the discrete Gaussian distribution.
- *
- * @param sigma The standard deviation of the Gaussian distribution
- * @param q The modulus of the ring Z_q
- * @output A sample from the discrete Gaussian distribution
- */
-
-long discrete_gaussian(double sigma, long q);
+long random_sample(distribution_t distrib, double sigma, long q);
 
 /*
  * Computes the probability density function of the discrete Gaussian
@@ -99,28 +103,7 @@ double rounded_gaussian_cdf(double x, double sigma);
  * @return The value for the cdf of the rounded Gaussian at x
  */
 
-double rounded_gaussian_pdf(long x, double sigma, long q, long k);
-
-/*
- * Samples a number from the rounded Gaussian distribution.
- *
- * @param sigma The standard deviation of the Gaussian distribution
- * @param q The modulus of the ring Z_q
- * @output A sample from the discrete Gaussian distribution
- */
-
-long rounded_gaussian(double sigma, long q);
-
-/*
- * Samples a number from the uniform distribution between [-beta, beta], where
- *      beta = (sqrt(12*sigma*sigma + 1) - 1)/2
- *
- * @param sigma The standard deviation of the equivalent Gaussian distribution
- * @param q The modulus of the ring Z_q
- * @output A sample from the discrete uniform distribution
- */
-
-long uniform(double sigma, long q);
+double rounded_gaussian_pdf(long x, double sigma, long q);
 
 /*
  * Computes the probability density function of the uniform distribution between

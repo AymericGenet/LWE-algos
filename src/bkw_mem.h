@@ -15,24 +15,25 @@
 #ifndef BKW_MEM_H_
 #define BKW_MEM_H_
 
+#include "bkw.h"
 #include "math.h"
 #include <stdio.h>
 
+#define BKW_MEM_PATH "tables/T.%i.txt"
 
 typedef struct {
+    lwe_t lwe;
     FILE ** tables;
     vec_t * sample_pos;
     vec_t * sample_neg;
 
-    int n, b, a, d;
-    long q;
+    int a, b, d, m;
 } bkw_mem_t;
 
-/*
- * Runs the BKW algorithm (to be completed...)
- */
 
-int bkw_mem_algo(vec_t res, int n, int b, int l);
+void bkw_mem_create(bkw_mem_t * bkw, lwe_t lwe, int a, int d, int m);
+
+void bkw_mem_free(bkw_mem_t * bkw);
 
 /*
  * Draws a pair (a, c) from the lwe_oracle() such that the components between
@@ -50,9 +51,8 @@ int bkw_mem_algo(vec_t res, int n, int b, int l);
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_mem_lf1(vec_t res, int n, long q, int b, int l, FILE ** table,
-                math_t ** aux);
+int bkw_mem_lf1(vec_t res, bkw_mem_t bkw, int l, math_t ** aux);
 
-int bkw_mem_lf2(vec_t res, int l, bkw_mem_t * bkw, math_t ** aux);
+int bkw_mem_lf2(vec_t res, bkw_mem_t bkw, int l, math_t ** aux);
 
 #endif /* BKW_MEM_H_ */

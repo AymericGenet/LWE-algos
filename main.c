@@ -15,36 +15,36 @@
 #include <time.h>
 
 
-#define MAX_RANGE 100
+#define MAX_RANGE 2
 
-int ns[] = {8, 9, 10, 11, 12, 13, 14, 15, 16};
-int qs[] = {67, 83, 101, 127, 149, 197, 227, 257};
-int bs[] = {3, 3, 4, 4, 3, 4, 4, 4};
-int as[] = {3, 3, 3, 3, 4, 4, 4, 4};
+int ns[] = {6, 7, 8, 9, 10, 11, 12};
+int qs[] = {37, 53, 67, 83, 101, 127, 149};
+int as[] = {4, 4, 5, 5, 5, 5, 5};
 
 int idx = 0; /* from 0 to 8 */
-int m = 32;
+int m = 5;
 
 int main(int argc, char *argv[]) {
     size_t i, j, k;
     clock_t time;
     int n, b, a, d;
-    int successes[] = {0, 0};
+    int successes = 0;
     long q;
     unsigned long depth;
-    double lf1_sec = 0.0, ll_sec = 0.0, fft_sec = 0.0;
+    double lf1_sec = 0.0, sol_sec = 0.0, rdm = 0.0;
     vec_t guess;
     vec_t vec;
     vec_t * res;
     vec_t * F;
-    vec_t ** T;
     math_t *** aux;
+    lwe_t lwe;
+    bkw_t bkw;
 
     init_random();
 
     /* ================================ INIT ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 2;
-    /*n = 6, q = 5, a = 2, b = 3, d = 2;*/
+    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 1;
+    /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
         fprintf(stderr, "main: depth overflow\n");
@@ -52,10 +52,9 @@ int main(int argc, char *argv[]) {
     }
 
     for (k = 0; k < MAX_RANGE; ++k) {
-        T = malloc(a * sizeof(vec_t *));
         F = malloc(m * sizeof(vec_t));
         res = malloc(m * sizeof(vec_t));
-        guess = calloc((d - 1), sizeof(math_t));
+        guess = calloc(d, sizeof(math_t));
         vec = malloc(n * sizeof(math_t));
 
         aux = malloc(2 * sizeof(math_t **));
@@ -64,20 +63,15 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < a; ++i) {
             aux[0][i] = calloc((n + 1), sizeof(math_t));
-            T[i] = calloc(depth, sizeof(vec_t));
-            if (T[i] == NULL) {
-                fprintf(stderr, "main: could not allocate enough memory\n");
-                exit(1);
-            }
         }
 
         for (i = 0; i < m; ++i) {
-            F[i] = calloc(d, sizeof(math_t));
+            F[i] = calloc(d + 1, sizeof(math_t));
             res[i] = calloc((n + 1), sizeof(math_t));
         }
 
         aux[1][0] = calloc(m, sizeof(math_t));
-        aux[1][1] = calloc((d - 1), sizeof(math_t));
+        aux[1][1] = calloc(d, sizeof(math_t));
 
 
         /* ======================== SAMPLE REDUCTION ======================== */
@@ -85,72 +79,58 @@ int main(int argc, char *argv[]) {
         /* defines secret and sigma in lwe_oracle */
         secret = malloc(n * sizeof(long));
         for (i = 0; i < n; ++i) {
-            read_random(vec + i);
-            secret[i] = vec[i] % q;
+            do {
+                read_drandom(&rdm);
+                secret[i] = rdm * q;
+            } while (secret[i] == 0);
         }
         sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
+
+        lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a)) * (sigma/q));
+        bkw_create(&bkw, lwe, a, d, m);
 
         /* runs algorithm to recover m samples */
         time = clock();
         for (i = 0; i < m; ++i) {
-            bkw_lf1(res[i], n, q, b, d - 1, a, T, aux[0]);
+            bkw_lf1(res[i], bkw, a, aux[0]);
         }
         time = clock() - time;
+
         lf1_sec += time/((double) CLOCKS_PER_SEC);
 
         /* reduces samples */
         for (i = 0; i < m; ++i) {
-            for (j = 0; j < d; ++j) {
-                F[i][j] = res[i][j + n + 1 - d];
+            for (j = 0; j < d + 1; ++j) {
+                F[i][j] = res[i][j + n - d];
             }
         }
 
 
-        /* ======================= HYPOTHESIS TESTING ======================= */
+        /* ========================== SOLVING PART ========================== */
 
-        /* runs hypothesis testing */
+        /* runs hypothesis testing or FFT */
         time = clock();
-        bkw_hypo_testing(guess, F, d, m, q, sqrt(pow(2, a)) * sigma, aux[1]);
+        bkw_hypo_testing(guess, F, bkw, aux[1]);
         time = clock() - time;
-        ll_sec += time/((double) CLOCKS_PER_SEC);
+        sol_sec += time/((double) CLOCKS_PER_SEC);
 
         /* checks correct answer */
-        successes[0]++;
-        for (i = 0; i < d - 1; ++i) {
-            if (guess[i] != secret[n - d + 1 + i]) {
-                successes[0]--;
+        successes++;
+        for (i = 0; i < d; ++i) {
+            if (guess[i] != secret[n - d + i]) {
+                successes--;
                 break;
             }
         }
 
-        /* ===================== FAST FOURIER TRANSFORM ===================== */
-
-        /* runs hypothesis testing */
-        time = clock();
-        bkw_fft(guess, F, d, m, q);
-        time = clock() - time;
-        fft_sec += time/((double) CLOCKS_PER_SEC);
-
-        /* checks correct answer */
-        successes[1]++;
-        for (i = 0; i < d - 1; ++i) {
-            if (guess[i] != secret[n - d + 1 + i]) {
-                successes[1]--;
-                break;
-            }
-        }
 
         /* =============================== END ============================== */
 
-
+        bkw_free(&bkw);
         bkw_free_log();
 
         for (i = 0; i < a; ++i) {
             free(aux[0][i]);
-            for (j = 0; j < depth; ++j) {
-                free(T[i][j]);
-            }
-            free(T[i]);
         }
 
         for (i = 0; i < m; ++i) {
@@ -168,17 +148,14 @@ int main(int argc, char *argv[]) {
         free(guess);
         free(res);
         free(F);
-        free(T);
         free(secret);
     }
 
     printf("For m = %i, n = %i, we have :\n\n", m, n);
-    printf("\t# of success (Log-likelihood)    : %i / %i\n", successes[0], MAX_RANGE);
-    printf("\t# of success (Fourier transform) : %i / %i\n", successes[0], MAX_RANGE);
+    printf("\t# of success : %i / %i\n", successes, MAX_RANGE);
 
     printf("\n\taverage time for collecting samples : %f s", lf1_sec / MAX_RANGE);
-    printf("\n\taverage time for log-likelihood     : %f s", ll_sec / MAX_RANGE);
-    printf("\n\taverage time for Fourier transform  : %f s", fft_sec / MAX_RANGE);
+    printf("\n\taverage time for solving part       : %f s", sol_sec / MAX_RANGE);
 
     printf("\n\n");
     close_random();

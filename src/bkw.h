@@ -17,12 +17,6 @@
 #include "math.h"
 #include "fftw3.h"
 
-typedef struct {
-    lwe_t lwe;
-    int a, b, d;
-    long m;
-} bkw_t;
-
 /* Linked-list node of tables T[a][q^b - 1] */
 typedef struct node_t node_t;
 
@@ -39,14 +33,22 @@ typedef struct {
     node_t * first;
     int * states;
     vec_t * sample;
-
-    int n, b, a, d;
-    long q;
 } table_t;
 
-void bkw_create_table(table_t * tab, int n, long q, int b, int d);
+/*
+ * BKW instance structure.
+ */
 
-void bkw_free_table(table_t * tab);
+typedef struct {
+    lwe_t lwe;
+    int a, b, d;
+    long m;
+    table_t tab;
+} bkw_t;
+
+void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int d, long m);
+
+void bkw_free(bkw_t * bkw);
 
 void bkw_create_node(node_t * node, int a, long q, int b);
 
@@ -68,8 +70,7 @@ void bkw_free_node(node_t * node, int a, int q, int b);
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
-            math_t ** aux);
+int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux);
 
 /*
  * Draws a pair (a, c) from the lwe_oracle() such that the components between
@@ -85,9 +86,7 @@ int bkw_lf1(vec_t res, int n, long q, int b, int d, int l, vec_t ** T,
  *  Minimum size for auxiliary variable : [l] x [n + 1]
  */
 
-int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
-            math_t ** aux);
-
+int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux);
 
 /*
  * Computes the score of every possible vector v in Z_q^b.
@@ -105,14 +104,13 @@ int bkw_lf2(vec_t res, int n, long q, int b, int l, table_t * tab,
  *    - aux[1] : [d - 1]
  */
 
-void bkw_hypo_testing(vec_t v, vec_t * F, int d, int m, long q,
-                      double sigma, math_t ** aux);
+void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux);
 
 /*
  * Solves an LWE instance with multi-dimensional fast Fourier transforms.
  */
 
-void bkw_fft(vec_t v, vec_t * F, int d, int m, long q);
+void bkw_fft(vec_t v, vec_t * F, bkw_t bkw);
 
 /*
  * Frees the precomputation of the logarithms in bkw_hypo_testing(). This should
