@@ -15,6 +15,7 @@
 
 
 static double * log_j = NULL;
+unsigned long lwe_oracle_calls = 0;
 
 void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int d, long m) {
     size_t i;
@@ -94,6 +95,7 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     vec_t ** T;
 
     if (l == 0) {
+        lwe_oracle_calls++;
         return lwe_oracle(res, bkw.lwe); /* TODO : time when verbose */
     }
 
@@ -105,7 +107,7 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     T = bkw.tab.first->T;
 
     start = (l - 1) * b;
-    end   = n - b * l > 0 ? l * b : n - d;
+    end   = (l == bkw.a) ? n - d : l * b;
     while (1) {
         /* samples from previous layer */
         if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {

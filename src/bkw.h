@@ -20,6 +20,8 @@
 /* Linked-list node of tables T[a][q^b - 1] */
 typedef struct node_t node_t;
 
+extern unsigned long lwe_oracle_calls;
+
 struct node_t {
     node_t * next;
     vec_t ** T;

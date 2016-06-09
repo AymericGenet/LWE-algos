@@ -22,7 +22,7 @@ int qs[] = {37, 53, 67, 83, 101, 127, 149};
 int as[] = {4, 4, 5, 5, 5, 5, 5};
 
 int idx = 0; /* from 0 to 8 */
-int m = 20;
+int m = 15;
 
 int main(int argc, char *argv[]) {
     size_t i, j, k;
@@ -30,7 +30,8 @@ int main(int argc, char *argv[]) {
     int n, b, a, d;
     int successes = 0;
     long q;
-    unsigned long depth;
+    unsigned long depth = 0, mem_count = 0;
+    double avg_oracle_calls = 0.0, avg_memory = 0.0;
     double lf1_sec = 0.0, sol_sec = 0.0, rdm = 0.0;
     vec_t guess;
     vec_t vec;
@@ -42,8 +43,8 @@ int main(int argc, char *argv[]) {
 
     init_random();
 
-    /* ================================ INIT ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 2;
+    /* ================================ DATA ================================ */
+    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 1;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (k = 0; k < MAX_RANGE; ++k) {
+        /* ============================== INIT ============================== */
         F = malloc(m * sizeof(vec_t));
         res = malloc(m * sizeof(vec_t));
         guess = calloc(d, sizeof(math_t));
@@ -86,17 +88,36 @@ int main(int argc, char *argv[]) {
         }
         sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
+        /* creates lwe and bkw struct */
         lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a-2)) * sigma);
         bkw_create(&bkw, lwe, a, d, m);
 
-        /* runs algorithm to recover m samples */
+        /* runs BKW algorithm to recover m samples */
+        lwe_oracle_calls = 0;
         time = clock();
         for (i = 0; i < m; ++i) {
-            bkw_lf1(res[i], bkw, a, aux[0]);
+            do {
+                bkw_lf1(res[i], bkw, a, aux[0]);
+            } while (zero(res[i], 0, n));
         }
         time = clock() - time;
 
+        /* computes time and oracle calls average */
+        avg_oracle_calls = avg_oracle_calls * k + lwe_oracle_calls;
+        avg_oracle_calls = avg_oracle_calls / (k + 1);
         lf1_sec += time/((double) CLOCKS_PER_SEC);
+
+        /* computes required amount of memory */
+        mem_count = 0;
+        for (i = 0; i < a; ++i) {
+            for (j = 0; j < depth; ++j) {
+                if (bkw.tab.first->T[i][j] != NULL) {
+                    mem_count++;
+                }
+            }
+        }
+        avg_memory = avg_memory * k + mem_count;
+        avg_memory = avg_memory / (k + 1);
 
         /* reduces samples */
         for (i = 0; i < m; ++i) {
@@ -110,7 +131,8 @@ int main(int argc, char *argv[]) {
 
         /* runs hypothesis testing or FFT */
         time = clock();
-        bkw_hypo_testing(guess, F, bkw, aux[1]);
+        /*bkw_hypo_testing(guess, F, bkw, aux[1]);*/
+        bkw_fft(guess, F, bkw); 
         time = clock() - time;
         sol_sec += time/((double) CLOCKS_PER_SEC);
 
@@ -154,8 +176,13 @@ int main(int argc, char *argv[]) {
     printf("For m = %i, n = %i, we have :\n\n", m, n);
     printf("\t# of successes : %i / %i\n", successes, MAX_RANGE);
 
-    printf("\n\taverage time for collecting samples : %f s", lf1_sec / MAX_RANGE);
-    printf("\n\taverage time for solving part       : %f s", sol_sec / MAX_RANGE);
+    printf("\n\taverage time for collecting samples   : %f s", lf1_sec / MAX_RANGE);
+    printf("\n\taverage time for solving part         : %f s", sol_sec / MAX_RANGE);
+
+    printf("\n");
+
+    printf("\n\taverage number of LWE oracle calls    : %f calls", avg_oracle_calls);
+    printf("\n\taverage memory for collecting samples : %f samples", avg_memory);
 
     printf("\n\n");
     close_random();
