@@ -17,12 +17,12 @@
 static double * log_j = NULL;
 unsigned long lwe_oracle_calls = 0;
 
-void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int d, long m) {
+void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int b, int d, long m) {
     size_t i;
 
     bkw->lwe = lwe;
     bkw->a = a;
-    bkw->b = (lwe.n/((double) a) + 0.5); /* cheap round */
+    bkw->b = b;
     bkw->d = d;
     bkw->m = m;
 
@@ -108,18 +108,17 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
 
     start = (l - 1) * b;
     end   = (l == bkw.a) ? n - d : l * b;
+
+    if (start >= n) {
+        start = n - d - b;
+    }
+    if (end >= n) {
+        end = n - d;
+    }
     while (1) {
         /* samples from previous layer */
         if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {
             return 0; /* false */
-        }
-
-        /* corner case */
-        if (start >= end) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = aux[0][i];
-            }
-            return 1; /* true */
         }
 
         /* if first elements already 0, returns it */

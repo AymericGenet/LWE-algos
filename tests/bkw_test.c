@@ -24,7 +24,7 @@ char * test_bkw_lf1() {
 
     /* init */
     m = 1;
-    n = 9, q = 5, a = 3, d = 1, b = n/a;
+    n = 6, q = 37, d = 1, b = 2, a = 4;
     depth = pow(q, b);
 
     secret = malloc(n * sizeof(long));
@@ -34,16 +34,14 @@ char * test_bkw_lf1() {
     secret[3] = 4;
     secret[4] = 0;
     secret[5] = 4;
-    secret[6] = 3;
-    secret[7] = 2;
-    secret[8] = 1;
+
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(vec_t));
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, d, m);
+    bkw_create(&bkw, lwe, a, b, d, m);
 
     for (i = 0; i < a; ++i) {
         aux[i] = calloc((n + 1), sizeof(math_t));
@@ -139,7 +137,7 @@ char * test_bkw_lf2() {
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, d, m);
+    bkw_create(&bkw, lwe, a, b, d, m);
 
     res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(math_t *));
@@ -218,7 +216,7 @@ char * test_bkw_lf2() {
 
 char * test_bkw_distrib() {
     size_t i, j;
-    int n, a, d, m;
+    int n, a, b, d, m;
     long noise, q;
     vec_t * res;
     math_t ** aux;
@@ -229,7 +227,7 @@ char * test_bkw_distrib() {
 
     /* init */
     m = 100;
-    n = 6, q = 37, a = 4, d = 3;
+    n = 6, q = 37, a = 4, d = 3, b = n/a;
     stats = calloc(m, sizeof(int));
 
     secret = malloc(n * sizeof(long));
@@ -243,7 +241,7 @@ char * test_bkw_distrib() {
     aux = malloc(a * sizeof(vec_t));
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, d, m);
+    bkw_create(&bkw, lwe, a, b, d, m);
 
     for (i = 0; i < a; ++i) {
         aux[i] = calloc((n + 1), sizeof(math_t));
@@ -295,7 +293,7 @@ char * test_bkw_distrib() {
 
 char * test_bkw_hypo_testing() {
     size_t i;
-    int d, m, a, n;
+    int d, m, a, b, n;
     long q;
     math_t ** aux;
     vec_t * F;
@@ -304,11 +302,11 @@ char * test_bkw_hypo_testing() {
     lwe_t lwe;
 
     /* init */
-    n = 1, a = 1;
+    n = 1, a = 1, b = 1;
     m = 5, q = 5, d = 3, sigma = 1.0;
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, d, m);
+    bkw_create(&bkw, lwe, a, b, d, m);
 
     aux = malloc(2 * sizeof(math_t *));
     F = malloc(m * sizeof(vec_t));
@@ -368,7 +366,7 @@ char * test_bkw_hypo_testing() {
 
 char * test_bkw_fft() {
     size_t i;
-    int d, m, a, n;
+    int d, m, a, b, n;
     long q;
     double sigma;
     vec_t * F;
@@ -377,11 +375,11 @@ char * test_bkw_fft() {
     lwe_t lwe;
 
     /* init */
-    n = 1, sigma = 1.0, a = 1;
+    n = 1, sigma = 1.0, a = 1, b = 1;
     m = 5, q = 5, d = 3;
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, d, m);
+    bkw_create(&bkw, lwe, a, b, d, m);
 
     F = malloc(m * sizeof(vec_t));
     v = calloc(d, sizeof(math_t));

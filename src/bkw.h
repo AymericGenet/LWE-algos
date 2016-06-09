@@ -48,7 +48,7 @@ typedef struct {
     table_t tab;
 } bkw_t;
 
-void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int d, long m);
+void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int b, int d, long m);
 
 void bkw_free(bkw_t * bkw);
 

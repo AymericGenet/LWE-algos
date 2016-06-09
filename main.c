@@ -20,6 +20,7 @@
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
 int qs[] = {37, 53, 67, 83, 101, 127, 149};
 int as[] = {4, 4, 5, 5, 5, 5, 5};
+int bs[] = {2, 2, 2, 2, 2, 2, 2};
 
 int idx = 0; /* from 0 to 8 */
 int m = 15;
@@ -44,7 +45,7 @@ int main(int argc, char *argv[]) {
     init_random();
 
     /* ================================ DATA ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = n/a, d = 1;
+    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 1;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
 
         /* creates lwe and bkw struct */
         lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a-2)) * sigma);
-        bkw_create(&bkw, lwe, a, d, m);
+        bkw_create(&bkw, lwe, a, b, d, m);
 
         /* runs BKW algorithm to recover m samples */
         lwe_oracle_calls = 0;
