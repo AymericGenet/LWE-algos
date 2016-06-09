@@ -15,15 +15,14 @@
 #include <time.h>
 
 
-#define MAX_RANGE 100
-
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
 int qs[] = {37, 53, 67, 83, 101, 127, 149};
-int as[] = {6, 7, 8, 9, 10, 11, 12};
+int as[] = {5, 6, 7, 8, 9, 10, 11};
 int bs[] = {1, 1, 1, 1, 1, 1, 1};
 
 int idx = 0; /* from 0 to 8 */
 int m = 15;
+int MAX_RANGE = 1000;
 
 int main(int argc, char *argv[]) {
     size_t i, j, k;
@@ -42,10 +41,16 @@ int main(int argc, char *argv[]) {
     lwe_t lwe;
     bkw_t bkw;
 
+    if (argc >= 4) {
+        idx = atoi(argv[1]);
+        m = atoi(argv[2]);
+        MAX_RANGE = atoi(argv[3]);
+    }
+
     init_random();
 
     /* ================================ DATA ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 1;
+    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 2;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
@@ -129,7 +134,6 @@ int main(int argc, char *argv[]) {
 
 
         /* ========================== SOLVING PART ========================== */
-
         /* runs hypothesis testing or FFT */
         time = clock();
         /*bkw_hypo_testing(guess, F, bkw, aux[1]);*/
@@ -148,7 +152,6 @@ int main(int argc, char *argv[]) {
 
 
         /* =============================== END ============================== */
-
         bkw_free(&bkw);
         bkw_free_log();
 
