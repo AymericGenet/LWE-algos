@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     init_random();
 
     /* ================================ DATA ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 1;
+    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 3;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {

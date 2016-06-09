@@ -109,10 +109,10 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     start = (l - 1) * b;
     end   = (l == bkw.a) ? n - d : l * b;
 
-    if (start >= n) {
-        start = n - d - b;
+    while (start >= n) {
+        start -= b;
     }
-    if (end >= n) {
+    if (end > n - d) {
         end = n - d;
     }
     while (1) {
