@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
     unsigned long depth = 0, mem_count = 0;
     double avg_oracle_calls = 0.0, avg_memory = 0.0;
     double lf1_sec = 0.0, sol_sec = 0.0, rdm = 0.0;
+    distribution_t distrib;
     vec_t guess;
     vec_t vec;
     vec_t * res;
@@ -41,16 +42,26 @@ int main(int argc, char *argv[]) {
     lwe_t lwe;
     bkw_t bkw;
 
-    if (argc >= 4) {
+    distrib = rounded_gaussian;
+    if (argc >= 5) {
         idx = atoi(argv[1]);
         m = atoi(argv[2]);
         MAX_RANGE = atoi(argv[3]);
+
+        switch (atoi(argv[4])) {
+        case 2:
+            distrib = uniform;
+            break;
+
+        case 1:
+            distrib = discrete_gaussian;
+        }
     }
 
     init_random();
 
     /* ================================ DATA ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = 2;
+    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
     /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
@@ -92,10 +103,10 @@ int main(int argc, char *argv[]) {
                 secret[i] = rdm * q;
             } while (secret[i] == 0);
         }
-        sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
+        sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n)/log(2) * log(n)/log(2));
 
         /* creates lwe and bkw struct */
-        lwe_create(&lwe, n, q, rounded_gaussian, sqrt(pow(2, a-2)) * sigma);
+        lwe_create(&lwe, n, q, distrib, sqrt(pow(2, a-2)) * sigma);
         bkw_create(&bkw, lwe, a, b, d, m);
 
         /* runs BKW algorithm to recover m samples */
