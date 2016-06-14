@@ -6,71 +6,41 @@
  */
 
 #include "math.h"
+#include "misc.h"
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <float.h>
-#include <limits.h>
 #include <stdio.h>
 
-static int devRandom;
-double (*distributions[DISTRIB_NUMBER])(long, double, long) = {
+double (*distributions[DISTRIB_NUMBER])(long, double, int, long) = {
     discrete_gaussian_pdf, rounded_gaussian_pdf, uniform_pdf };
 
-
-int init_random() {
-    devRandom = open("/dev/urandom", O_RDONLY);
-    return devRandom;
-}
-
-int read_random(math_t * dest) {
-    int success;
-    success = read(devRandom, dest, sizeof *dest);
-    return success;
-}
-
-int read_drandom(double * dest) {
-    unsigned long random;
-    int success;
-
-    success = read(devRandom, &random, sizeof(unsigned long));
-    if (success < 0) {
-        return success;
-    }
-
-    *dest = random/((double) ULONG_MAX); /* FIXME ? */
-
-    return success;
-}
-
-int close_random() {
-    return close(devRandom);
-}
 
 long random_sample(distribution_t distrib, double sigma, long q) {
     double M, u;
     long sample, x;
-    double (*pdf)(long x, double sigma, long q);
+    double (*pdf)(long x, double sigma, int n, long q);
 
     pdf = distributions[distrib];
-    M = pdf(0, sigma, q);
+    M = pdf(0, sigma, 1, q);
     do {
         read_drandom(&u);
         x = u * q;
         read_drandom(&u);
         u = u * M;
         sample = x > q/2 ? x - q : x;
-    } while(u >= pdf(sample, sigma, q));
+    } while(u >= pdf(sample, sigma, 1, q));
 
     return x;
 }
 
-double discrete_gaussian_pdf(long x, double sigma, long q) {
+double discrete_gaussian_pdf(long x, double sigma, int n, long q) {
     double result, sum;
     long y;
 
+    sigma *= sqrt(pow(2, n-2));
     result = exp(-(x*x)/(2*sigma*sigma));
     sum = 0;
     for (y = -q/2; y <= q/2; ++y) {
@@ -84,10 +54,13 @@ double rounded_gaussian_cdf(double x, double sigma) {
     return 0.5 * (1 + custom_erf(x/sqrt(2*sigma*sigma)));
 }
 
-double rounded_gaussian_pdf(long x, double sigma, long q) {
+double rounded_gaussian_pdf(long x, double sigma, int n, long q) {
     double result;
     int i, k = 10; /* FIXME */
 
+    if (n > 2) {
+        sigma *= sqrt(pow(2, n-2));
+    }
     result = 0.0;
     for (i = -k; i <= k; ++i) {
         result += rounded_gaussian_cdf(q*i + x + 0.5, sigma);
@@ -97,12 +70,24 @@ double rounded_gaussian_pdf(long x, double sigma, long q) {
     return result;
 }
 
-double uniform_pdf(long x, double sigma, long q) {
+double uniform_pdf(long x, double sigma, int n, long q) {
+    double pdf = 0.0, p1, p2;
     int beta;
+    size_t i;
 
-    beta = (sqrt(12*sigma*sigma + 1) - 1)/2;
+    if (n == 0) {
+        beta = (sqrt(12*sigma*sigma + 1) - 1)/2;
 
-    return (x >= -beta && x <= beta) ? 1.0/(2*beta + 1) : 0.0;
+        return (x >= -beta && x <= beta) ? 1.0/(2*beta + 1) : 0.0;
+    }
+
+    for (i = 0; i < q; i++) {
+        p1 = uniform_pdf(x + i > q/2 ? q - (x + i) : x + i, sigma, q, n - 1);
+        p2 = uniform_pdf(i > q/2 ? q - i : i, sigma, q, n - 1);
+        pdf += p1 * p2;
+    }
+
+    return pdf;
 }
 
 size_t index(vec_t elem, long q, int a, int b) {

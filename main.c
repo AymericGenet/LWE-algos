@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "src/bkw.h"
 #include "src/math.h"
+#include "src/misc.h"
 #include "src/lwe.h"
 #include <math.h>
 #include <float.h>
@@ -25,6 +26,8 @@ int m = 15;
 int MAX_RANGE = 1000;
 
 int main(int argc, char *argv[]) {
+    int * stats;
+    long noise;
     size_t i, j, k;
     clock_t time;
     int n, b, a, d;
@@ -33,14 +36,16 @@ int main(int argc, char *argv[]) {
     unsigned long depth = 0, mem_count = 0;
     double avg_oracle_calls = 0.0, avg_memory = 0.0;
     double lf1_sec = 0.0, sol_sec = 0.0, rdm = 0.0;
+    double sigma;
     distribution_t distrib;
     vec_t guess;
-    vec_t vec;
+    vec_t sec;
     vec_t * res;
     vec_t * F;
     math_t *** aux;
-    lwe_t lwe;
-    bkw_t bkw;
+    lwe_t * lwe;
+    bkw_t * bkw;
+    node_t * curr;
 
     distrib = rounded_gaussian;
     if (argc >= 5) {
@@ -55,10 +60,15 @@ int main(int argc, char *argv[]) {
 
         case 1:
             distrib = discrete_gaussian;
+            break;
+
+        case 0:
+        default:
+            distrib = rounded_gaussian;
         }
     }
 
-    init_random();
+    init_random("/dev/random");
 
     /* ================================ DATA ================================ */
     n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
@@ -74,7 +84,8 @@ int main(int argc, char *argv[]) {
         F = malloc(m * sizeof(vec_t));
         res = malloc(m * sizeof(vec_t));
         guess = calloc(d, sizeof(math_t));
-        vec = malloc(n * sizeof(math_t));
+        sec = malloc(n * sizeof(math_t));
+        stats = calloc(q, sizeof(int));
 
         aux = malloc(2 * sizeof(math_t **));
         aux[0] = malloc(a * sizeof(math_t *));
@@ -96,26 +107,32 @@ int main(int argc, char *argv[]) {
         /* ======================== SAMPLE REDUCTION ======================== */
 
         /* defines secret and sigma in lwe_oracle */
-        secret = malloc(n * sizeof(long));
         for (i = 0; i < n; ++i) {
             do {
                 read_drandom(&rdm);
-                secret[i] = rdm * q;
-            } while (secret[i] == 0);
+                sec[i] = rdm * (q - 1);
+            } while (sec[i] == 0);
         }
         sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n)/log(2) * log(n)/log(2));
 
         /* creates lwe and bkw struct */
-        lwe_create(&lwe, n, q, distrib, sqrt(pow(2, a-2)) * sigma);
-        bkw_create(&bkw, lwe, a, b, d, m);
+        lwe = malloc(sizeof(lwe_t));
+        lwe_create(lwe, n, q, distrib, sigma, sec);
+        bkw = malloc(sizeof(bkw_t));
+        bkw_create(bkw, lwe, a, b, d, m);
 
         /* runs BKW algorithm to recover m samples */
         lwe_oracle_calls = 0;
         time = clock();
         for (i = 0; i < m; ++i) {
             do {
-                bkw_lf1(res[i], bkw, a, aux[0]);
+                bkw_lf2(res[i], bkw, a - 1, aux[0]);
             } while (zero(res[i], 0, n));
+            printf("[ ");
+            for (j = 0; j < n + 1; ++j) {
+                printf("%lu ", res[i][j]);
+            }
+            printf("]\n");
         }
         time = clock() - time;
 
@@ -126,13 +143,18 @@ int main(int argc, char *argv[]) {
 
         /* computes required amount of memory */
         mem_count = 0;
-        for (i = 0; i < a; ++i) {
-            for (j = 0; j < depth; ++j) {
-                if (bkw.tab.first->T[i][j] != NULL) {
-                    mem_count++;
+        curr = bkw->tab->first;
+
+        do {
+            for (i = 0; i < a; ++i) {
+                for (j = 0; j < depth; ++j) {
+                    if (curr->T[i][j] != NULL) {
+                        mem_count++;
+                    }
                 }
             }
-        }
+            curr = curr->next;
+        } while(curr != NULL);
         avg_memory = avg_memory * k + mem_count;
         avg_memory = avg_memory / (k + 1);
 
@@ -148,22 +170,62 @@ int main(int argc, char *argv[]) {
         /* runs hypothesis testing or FFT */
         time = clock();
         /*bkw_hypo_testing(guess, F, bkw, aux[1]);*/
-        bkw_fft(guess, F, bkw); 
+        bkw_fft(guess, F, bkw);
         time = clock() - time;
         sol_sec += time/((double) CLOCKS_PER_SEC);
 
         /* checks correct answer */
         successes++;
         for (i = 0; i < d; ++i) {
-            if (guess[i] != secret[n - d + i]) {
+            if (guess[i] % q != sec[n - d + i] % q) {
                 successes--;
                 break;
             }
         }
 
+        for (i = 0; i < m; ++i) {
+            noise = res[i][n];
+            for (j = 0; j < n; ++j) {
+                noise = (q*q + noise - res[i][j]*sec[j]) % q;
+            }
+            stats[noise]++;
+        }
+
+        /*printf("\n");
+        for (i = 0; i < q; ++i) {
+            printf("%i : \t", i);
+            for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
+                printf("=");
+            }
+            printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, 1, q));
+            stats[i] = 0;
+        }
+        printf("\n");*/
+
+        for (i = 0; i < m; ++i) {
+            noise = res[i][n];
+            for (j = n - d; j < n; ++j) {
+                noise = (q*q + noise - res[i][j]*guess[j - (n - d)]) % q;
+            }
+            stats[noise]++;
+        }
+
+        /*printf("\n");
+        for (i = 0; i < q; ++i) {
+            printf("%i : \t", i);
+            for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
+                printf("=");
+            }
+            printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, 1, q));
+        }
+        printf("\n");*/
+
 
         /* =============================== END ============================== */
-        bkw_free(&bkw);
+        bkw_free(bkw);
+        lwe_free(lwe);
+        free(bkw);
+        free(lwe);
         bkw_free_log();
 
         for (i = 0; i < a; ++i) {
@@ -181,11 +243,10 @@ int main(int argc, char *argv[]) {
         free(aux[1]);
         free(aux);
 
-        free(vec);
+        free(sec);
         free(guess);
         free(res);
         free(F);
-        free(secret);
     }
 
     printf("For m = %i, n = %i, we have :\n\n", m, n);

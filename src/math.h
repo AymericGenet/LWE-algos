@@ -27,45 +27,8 @@ typedef enum {
     uniform
 } distribution_t;
 
-extern double (*distributions[DISTRIB_NUMBER])(long, double, long);
+extern double (*distributions[DISTRIB_NUMBER])(long, double, int, long);
 
-
-/*
- * Initializes the reading of /dev/urandom/.
- *
- * @return 1 (true) if opening /dev/urandom/ was successful, 0 (false) othwerise
- */
-
-int init_random();
-
-/*
- * Reads 4 random bytes from /dev/urandom/ and writes it in dest.
- *  WARNING : must call init_random() beforehand, or the function blocks.
- *
- * @param dest The destination for the random bytes
- * @return 1 (true) if reading /dev/urandom/ was successful, 0 (false) otherwise
- */
-
-int read_random(math_t * dest);
-
-/*
- * Reads 4 random bytes from /dev/urandom/ and writes a random floating between
- * [0, 1] in dest.
- *  WARNING : must call init_random() beforehand, or the function blocks.
- *
- * @param dest The destination for the random double
- * @return 1 (true) if reading /dev/urandom/ was successful, 0 (false) otherwise
- */
-
-int read_drandom(double * dest);
-
-/*
- * Closes the reading of /dev/urandom/.
- *
- * @return 1 (true) if closing /dev/urandom/ was successful, 0 (false) othwerise
- */
-
-int close_random();
 
 long random_sample(distribution_t distrib, double sigma, long q);
 
@@ -79,7 +42,7 @@ long random_sample(distribution_t distrib, double sigma, long q);
  * @return The value for the cdf of the rounded Gaussian at x
  */
 
-double discrete_gaussian_pdf(long x, double sigma, long q);
+double discrete_gaussian_pdf(long x, double sigma, int n, long q);
 
 /*
  * Computes the cumulative distribution function of the rounded Gaussian
@@ -103,7 +66,7 @@ double rounded_gaussian_cdf(double x, double sigma);
  * @return The value for the cdf of the rounded Gaussian at x
  */
 
-double rounded_gaussian_pdf(long x, double sigma, long q);
+double rounded_gaussian_pdf(long x, double sigma, int n, long q);
 
 /*
  * Computes the probability density function of the uniform distribution between
@@ -116,7 +79,7 @@ double rounded_gaussian_pdf(long x, double sigma, long q);
  * @return The value for the pdf of the uniform distribution at x
  */
 
-double uniform_pdf(long x, double sigma, long q);
+double uniform_pdf(long x, double sigma, int n, long q);
 
 /*
  * Translates the vector elements from [a, b] into an index of an array.

@@ -6,36 +6,40 @@
  */
 
 #include "lwe.h"
-#include "math.h"
+#include "misc.h"
 
-vec_t secret;
-double sigma;
 
-void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig) {
+void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig,
+                vec_t secret) {
+    size_t i;
+
     lwe->n = n;
     lwe->q = q;
     lwe->distrib = distrib;
     lwe->sig = sig;
+    lwe->secret = malloc(n * sizeof(math_t));
+    for (i = 0; i < n; ++i) {
+        lwe->secret[i] = secret[i] % q;
+    }
 }
 
-int lwe_oracle_predef(vec_t res, vec_t s, lwe_t lwe) {
+void lwe_free(lwe_t * lwe) {
+    free(lwe->secret);
+}
+
+int lwe_oracle(vec_t res, lwe_t * lwe) {
     size_t i;
     double u = 0.0;
-    int n = lwe.n;
-    long q = lwe.q;
+    int n = lwe->n;
+    long q = lwe->q;
 
-    res[n] = random_sample(lwe.distrib, lwe.sig, q);
+    res[n] = random_sample(lwe->distrib, lwe->sig, q);
     for (i = 0; i < n; ++i) {
         read_drandom(&u);
 
-        res[i] = u*q == q ? 0 : u*q; /* because C is really dumb, sometimes */
-        res[n] = (res[n] + res[i]*s[i]) % q;
+        res[i] = u * (q - 1);
+        res[n] = (res[n] + res[i]*lwe->secret[i]) % q;
     }
 
     return 1; /* true */
-}
-
-int lwe_oracle(vec_t res, lwe_t lwe) {
-    lwe.sig = sigma;
-    return lwe_oracle_predef(res, secret, lwe);
 }

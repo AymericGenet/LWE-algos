@@ -9,7 +9,43 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <float.h>
+#include <stdio.h>
 
+static int random_file;
+
+
+int init_random(char * path) {
+    random_file = open(path, O_RDONLY);
+    return random_file;
+}
+
+int read_random(math_t * dest) {
+    int success;
+    success = read(random_file, dest, sizeof *dest);
+    return success;
+}
+
+int read_drandom(double * dest) {
+    unsigned long random;
+    int success;
+
+    success = read(random_file, &random, sizeof(unsigned long));
+    if (success < 0) {
+        return success;
+    }
+
+    *dest = random/((double) ULONG_MAX);
+
+    return success;
+}
+
+int close_random() {
+    return close(random_file);
+}
 
 int open_table(FILE ** file, char * path) {
     (*file) = fopen(path, "a+");

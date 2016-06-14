@@ -15,6 +15,7 @@
 #include "tests/bkw_test.h"
 #include "tests/bkw_mem_test.h"
 #include "src/math.h"
+#include "src/misc.h"
 
 #define SUITES_NUMBER 3
 #define MAX_NAMETAG_LEN 128
@@ -39,7 +40,7 @@ int main(int argc, char *argv[]) {
     int tests_number;
     char * result;
 
-    init_random();
+    init_random("./random");
 
     tests_number = SUITES_NUMBER;
 

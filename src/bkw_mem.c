@@ -67,7 +67,7 @@ int bkw_mem_lf1(vec_t res, bkw_mem_t bkw, int l, math_t ** aux) {
     while (1) {
         /* samples from previous layer */
         if (l == 0) {
-            return lwe_oracle(res, bkw.lwe);
+            return lwe_oracle(res, &(bkw.lwe));
         } else {
             if (!bkw_mem_lf1(aux[0], bkw, l - 1, aux + 3)) {
                 return 0; /* false */
@@ -120,7 +120,7 @@ int bkw_mem_lf2(vec_t res, bkw_mem_t bkw, int l, math_t ** aux) {
 
     /* if call to lwe_oracle */
     if (l == 0) {
-        return lwe_oracle(res, bkw.lwe);
+        return lwe_oracle(res, &(bkw.lwe));
     }
 
     /* for visibility concerns */

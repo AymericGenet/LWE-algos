@@ -13,14 +13,14 @@
 #include <math.h>
 
 
-char * test_lwe_oracle_predef() {
+char * test_lwe_oracle() {
     int n;
     vec_t pair;
     long q;
     vec_t s;
     double sig;
     size_t i;
-    lwe_t lwe;
+    lwe_t * lwe;
 
     n = 3;
     q = 97;
@@ -31,38 +31,8 @@ char * test_lwe_oracle_predef() {
     s[2] = 94;
     sig = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sig);
-
-    lwe_oracle_predef(pair, s, lwe);
-    printf("\n");
-    for (i = 0; i < n; ++i) {
-        printf("\ta[%i] = %lu\n", i, pair[i]);
-    }
-    printf("\tc = %lu\n", pair[n]);
-
-    free(pair);
-    free(s);
-
-    return NULL;
-}
-
-char * test_lwe_oracle() {
-    int n;
-    vec_t pair;
-    long q;
-    size_t i;
-    lwe_t lwe;
-
-    n = 3;
-    q = 97;
-    pair = malloc((n + 1) * sizeof(math_t));
-    secret = malloc(n * sizeof(math_t));
-    secret[0] = 35;
-    secret[1] = 39;
-    secret[2] = 94;
-    sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
-
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
+    lwe = malloc(sizeof(lwe_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sig, s);
 
     lwe_oracle(pair, lwe);
     printf("\n");
@@ -71,15 +41,16 @@ char * test_lwe_oracle() {
     }
     printf("\tc = %lu\n", pair[n]);
 
+    lwe_free(lwe);
+    free(lwe);
     free(pair);
-    free(secret);
+    free(s);
 
     return NULL;
 }
 
 char * lwe_all_tests() {
     printf("\n=============== LWE Oracle tests ===============\n\n");
-    mu_run_test(test_lwe_oracle_predef, "lwe_oracle_predef()");
     mu_run_test(test_lwe_oracle, "lwe_oracle()");
     printf("\n");
 

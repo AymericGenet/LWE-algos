@@ -22,6 +22,8 @@ char * test_bkw_mem_lf1() {
     math_t ** aux;
     lwe_t lwe;
     bkw_mem_t bkw;
+    vec_t secret;
+    double sigma;
 
     /* init  */
     m = 1;
@@ -39,7 +41,7 @@ char * test_bkw_mem_lf1() {
     secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
+    lwe_create(&lwe, n, q, rounded_gaussian, sigma, secret);
     bkw_mem_create(&bkw, lwe, a, d, m);
 
     res = calloc((n + 1), sizeof(math_t));
@@ -95,7 +97,7 @@ char * test_bkw_mem_lf1() {
             free(aux[3*i + j]);
         }
     }
-
+    lwe_free(&lwe);
     bkw_mem_free(&bkw);
 
     free(aux);
@@ -113,6 +115,8 @@ char * test_bkw_mem_lf2() {
     math_t ** aux;
     lwe_t lwe;
     bkw_mem_t bkw;
+    vec_t secret;
+    double sigma;
 
     /* init  */
     m = 1;
@@ -130,7 +134,7 @@ char * test_bkw_mem_lf2() {
     secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
+    lwe_create(&lwe, n, q, rounded_gaussian, sigma, secret);
     bkw_mem_create(&bkw, lwe, a, d, m);
 
     res = calloc(n + 1, sizeof(math_t));
@@ -194,6 +198,7 @@ char * test_bkw_mem_lf2() {
     }
 
     bkw_mem_free(&bkw);
+    lwe_free(&lwe);
 
     free(aux);
     free(res);

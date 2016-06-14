@@ -18,33 +18,24 @@ typedef struct {
     long q;
     distribution_t distrib;
     double sig;
+    vec_t secret;
 } lwe_t;
 
 extern vec_t secret;
 extern double sigma;
 
 
-void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig);
+void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig,
+                vec_t secret);
+
+void lwe_free(lwe_t * lwe);
 
 /*
- * Takes secret s and puts in res an array containing the pair (a, c) such that
- * a is uniformly in Z_q^n, and c = <a, s> + e where e follows a distribution D.
- *
- * Returns 1 (true) if query was successful, 0 (false) otherwise.
-*/
-
-int lwe_oracle_predef(vec_t res, vec_t s, lwe_t lwe);
-
-/*
- * Draws a pair (a, c) such that a is uniformly in Z_q^n, and c = <a, s> + e
- * where e follows a distribution D.
- *
- * The function defines an oracle of a real case scenario, it can be linked to
- * a file.
+ * Draws a pair (a, c) according to LWE instance.
  * 
  * Returns 1 (true) if query was successful, 0 (false) otherwise.
  */
 
-int lwe_oracle(vec_t res, lwe_t lwe);
+int lwe_oracle(vec_t res, lwe_t * lwe);
 
 #endif /* LWE_H_ */

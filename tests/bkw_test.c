@@ -10,6 +10,7 @@
 #include "../src/bkw.h"
 #include "../src/lwe.h"
 #include "../src/math.h"
+#include "../src/misc.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -17,10 +18,12 @@ char * test_bkw_lf1() {
     size_t i, j, k;
     int n, a, d, b, m;
     long q, depth;
+    double sigma;
     vec_t res;
     math_t ** aux;
-    bkw_t bkw;
-    lwe_t lwe;
+    bkw_t * bkw;
+    lwe_t * lwe;
+    vec_t secret;
 
     /* init */
     m = 1;
@@ -40,8 +43,10 @@ char * test_bkw_lf1() {
     res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(vec_t));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, b, d, m);
+    lwe = malloc(sizeof(lwe_t));
+    bkw = malloc(sizeof(bkw_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sigma, secret);
+    bkw_create(bkw, lwe, a, b, d, m);
 
     for (i = 0; i < a; ++i) {
         aux[i] = calloc((n + 1), sizeof(math_t));
@@ -84,10 +89,10 @@ char * test_bkw_lf1() {
     printf("\n\t### Table T[a][q^b] state ###\n\n");
     for (i = 0; i < a; ++i) {
         for (j = 0; j < depth; ++j) {
-            if (bkw.tab.first->T[i][j] != NULL) {
+            if (bkw->tab->first->T[i][j] != NULL) {
                 printf("\t[ ");
                 for (k = 0; k < n + 1; ++k) {
-                    printf("%lu ", bkw.tab.first->T[i][j][k]);
+                    printf("%lu ", bkw->tab->first->T[i][j][k]);
                 }
                 printf("]\n");
             }
@@ -96,7 +101,10 @@ char * test_bkw_lf1() {
     printf("\n");
 
     /* frees memory */
-    bkw_free(&bkw);
+    bkw_free(bkw);
+    lwe_free(lwe);
+    free(bkw);
+    free(lwe);
     for (i = 0; i < a; ++i) {
         free(aux[i]);
     }
@@ -116,13 +124,17 @@ char * test_bkw_lf2() {
     math_t ** aux;
     node_t * curr;
     vec_t ** T;
-    bkw_t bkw;
-    lwe_t lwe;
+    bkw_t * bkw;
+    lwe_t * lwe;
+    vec_t secret;
+    double sigma;
 
     /* init  */
     m = 1;
-    n = 9, q = 5, a = 3, d = 2, b = n/a;
+    n = 6, q = 37, a = 5, b = 1, d = n - (a - 1)*b;
     depth = pow(q, b);
+
+    printf("n = %i, a = %i, b = %i, d = %i\n", n, a, b, d);
 
     secret = malloc(n * sizeof(long));
     secret[0] = 1;
@@ -131,13 +143,12 @@ char * test_bkw_lf2() {
     secret[3] = 4;
     secret[4] = 0;
     secret[5] = 4;
-    secret[6] = 3;
-    secret[7] = 2;
-    secret[8] = 1;
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, b, d, m);
+    lwe = malloc(sizeof(lwe_t));
+    bkw = malloc(sizeof(bkw_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sigma, secret);
+    bkw_create(bkw, lwe, a, b, d, m);
 
     res = calloc((n + 1), sizeof(math_t));
     aux = malloc(a * sizeof(math_t *));
@@ -146,40 +157,22 @@ char * test_bkw_lf2() {
         aux[i] = calloc((n + 1), sizeof(math_t));
     }
 
-    /* draws a sample when l = 0 */
-    bkw_lf2(res, bkw, 0, aux);
+    mem_used = 0;
+    lwe_oracle_calls = 0;
 
-    for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i]);
+    /* draws a sample when l = a */
+    for (j = 0; j < 20; ++j) {
+        do {
+            bkw_lf2(res, bkw, a - 1, aux);
+        } while(zero(res, 0, n));
+        printf("[ ");
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", res[i]);
+        }
+        printf("]\n");
     }
 
-    printf("\n");
-
-    /* draws a sample when l = 1 */
-    bkw_lf2(res, bkw, 1, aux);
-
-    for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i]);
-    }
-
-    printf("\n");
-
-    /* draws a sample when l = 2 */
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-    bkw_lf2(res, bkw, 2, aux);
-
-    for (i = 0; i < n; ++i) {
-        printf("\tres[%i] = %lu\n", i, res[i]);
-    }
-
-    curr = bkw.tab.first;
+    curr = bkw->tab->first;
     l = 0;
     do {
         T = curr->T;
@@ -200,8 +193,14 @@ char * test_bkw_lf2() {
         l++;
     } while (curr != NULL);
 
+    printf("Amount of memory used  : %lu\n", mem_used);
+    printf("Amount of oracle calls : %lu\n", lwe_oracle_calls);
+
     /* frees memory */
-    bkw_free(&bkw);
+    bkw_free(bkw);
+    lwe_free(lwe);
+    free(bkw);
+    free(lwe);
 
     for (i = 0; i < a; ++i) {
         free(aux[i]);
@@ -220,28 +219,32 @@ char * test_bkw_distrib() {
     long noise, q;
     vec_t * res;
     math_t ** aux;
-    bkw_t bkw;
-    lwe_t lwe;
+    bkw_t * bkw;
+    lwe_t * lwe;
     int * stats;
     double dist;
+    vec_t secret;
+    double sigma;
 
     /* init */
-    m = 100;
-    n = 6, q = 37, a = 4, d = 3, b = n/a;
-    stats = calloc(m, sizeof(int));
+    m = 1000;
+    n = 6, q = 37, a = 5, d = 2, b = 1;
+    stats = calloc(q, sizeof(int));
 
     secret = malloc(n * sizeof(long));
     for (i = 0; i < n; ++i) {
         read_drandom(&dist);
-        secret[i] = dist * q;
+        secret[i] = dist * (q - 1);
     }
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     res = malloc(m * sizeof(math_t));
     aux = malloc(a * sizeof(vec_t));
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, b, d, m);
+    lwe = malloc(sizeof(lwe_t));
+    bkw = malloc(sizeof(bkw_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sigma, secret);
+    bkw_create(bkw, lwe, a, b, d, m);
 
     for (i = 0; i < a; ++i) {
         aux[i] = calloc((n + 1), sizeof(math_t));
@@ -253,7 +256,9 @@ char * test_bkw_distrib() {
 
     /* collects samples */
     for (i = 0; i < m; ++i) {
-        bkw_lf1(res[i], bkw, a - 1, aux);
+        do {
+            bkw_lf2(res[i], bkw, a - 1, aux);
+        } while(zero(res[i], 0, n));
         noise = res[i][n];
         for (j = 0; j < n; ++j) {
             noise = (q*q + noise - res[i][j]*secret[j]) % q;
@@ -265,16 +270,19 @@ char * test_bkw_distrib() {
     printf("\n");
     for (i = 0; i < q; ++i) {
         printf("%i : \t", i);
-        for (j = 0; j < stats[i]/1.0; ++j) {
+        for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
             printf("=");
         }
         dist = 0.0;
-        printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, q));
+        printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, 1, q));
     }
     printf("\n");
 
     /* frees memory */
-    bkw_free(&bkw);
+    bkw_free(bkw);
+    lwe_free(lwe);
+    free(bkw);
+    free(lwe);
     for (i = 0; i < a; ++i) {
         free(aux[i]);
     }
@@ -298,15 +306,20 @@ char * test_bkw_hypo_testing() {
     math_t ** aux;
     vec_t * F;
     vec_t v;
-    bkw_t bkw;
-    lwe_t lwe;
+    bkw_t * bkw;
+    lwe_t * lwe;
+    vec_t secret;
+    double sigma;
 
     /* init */
     n = 1, a = 1, b = 1;
     m = 5, q = 5, d = 3, sigma = 1.0;
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, b, d, m);
+    secret = calloc(n, sizeof(math_t));
+    lwe = malloc(sizeof(lwe_t));
+    bkw = malloc(sizeof(bkw_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sigma, secret);
+    bkw_create(bkw, lwe, a, b, d, m);
 
     aux = malloc(2 * sizeof(math_t *));
     F = malloc(m * sizeof(vec_t));
@@ -347,7 +360,10 @@ char * test_bkw_hypo_testing() {
     printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");
 
     /* frees memory */
-    bkw_free(&bkw);
+    bkw_free(bkw);
+    lwe_free(lwe);
+    free(bkw);
+    free(lwe);
     bkw_free_log();
 
     for (i = 0; i < m; ++i) {
@@ -360,6 +376,7 @@ char * test_bkw_hypo_testing() {
     free(aux);
     free(v);
     free(F);
+    free(secret);
 
     return NULL;
 }
@@ -371,15 +388,19 @@ char * test_bkw_fft() {
     double sigma;
     vec_t * F;
     vec_t v;
-    bkw_t bkw;
-    lwe_t lwe;
+    bkw_t * bkw;
+    lwe_t * lwe;
+    vec_t secret;
 
     /* init */
     n = 1, sigma = 1.0, a = 1, b = 1;
     m = 5, q = 5, d = 3;
 
-    lwe_create(&lwe, n, q, rounded_gaussian, sigma);
-    bkw_create(&bkw, lwe, a, b, d, m);
+    secret = calloc(n, sizeof(math_t));
+    lwe = malloc(sizeof(lwe_t));
+    bkw = malloc(sizeof(bkw_t));
+    lwe_create(lwe, n, q, rounded_gaussian, sigma, secret);
+    bkw_create(bkw, lwe, a, b, d, m);
 
     F = malloc(m * sizeof(vec_t));
     v = calloc(d, sizeof(math_t));
@@ -416,7 +437,10 @@ char * test_bkw_fft() {
     printf("\tCorrect vector    s = [ 1 2 3 ]\n\n");
 
     /* frees memory */
-    bkw_free(&bkw);
+    bkw_free(bkw);
+    lwe_free(lwe);
+    free(bkw);
+    free(lwe);
 
     for (i = 0; i < m; ++i) {
         free(F[i]);
@@ -424,6 +448,7 @@ char * test_bkw_fft() {
 
     free(F);
     free(v);
+    free(secret);
 
     return NULL;
 }

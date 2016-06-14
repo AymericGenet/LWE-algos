@@ -16,8 +16,9 @@
 
 static double * log_j = NULL;
 unsigned long lwe_oracle_calls = 0;
+unsigned long mem_used = 0;
 
-void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int b, int d, long m) {
+void bkw_create(bkw_t * bkw, lwe_t * lwe, int a, int b, int d, long m) {
     size_t i;
 
     bkw->lwe = lwe;
@@ -26,28 +27,32 @@ void bkw_create(bkw_t * bkw, lwe_t lwe, int a, int b, int d, long m) {
     bkw->d = d;
     bkw->m = m;
 
-    bkw->tab.first = malloc(sizeof(node_t));
-    bkw->tab.states = malloc(a * sizeof(int));
-    bkw->tab.sample = malloc(a * sizeof(vec_t));
+    bkw->tab = malloc(sizeof(table_t));
+
+    bkw->tab->first = malloc(sizeof(node_t));
+    bkw->tab->states = malloc(a * sizeof(int));
+    bkw->tab->sample = malloc(a * sizeof(vec_t));
 
     for (i = 0; i < a; ++i) {
-        bkw->tab.states[i] = 0;
-        bkw->tab.sample[i] = NULL;
+        bkw->tab->states[i] = 0;
+        bkw->tab->sample[i] = NULL;
     }
 
-    bkw_create_node(bkw->tab.first, a, lwe.q, bkw->b);
+    bkw_create_node(bkw->tab->first, a, lwe->q, bkw->b);
 }
 
 void bkw_free(bkw_t * bkw) {
     size_t i;
 
     for (i = 0; i < bkw->a; ++i) {
-        free(bkw->tab.sample[i]);
+        free(bkw->tab->sample[i]);
     }
 
-    free(bkw->tab.sample);
-    free(bkw->tab.states);
-    bkw_free_node(bkw->tab.first, bkw->a, bkw->lwe.q, bkw->b);
+    free(bkw->tab->sample);
+    free(bkw->tab->states);
+    bkw_free_node(bkw->tab->first, bkw->a, bkw->lwe->q, bkw->b);
+
+    free(bkw->tab);
 }
 
 void bkw_create_node(node_t * node, int a, long q, int b) {
@@ -87,39 +92,47 @@ void bkw_free_node(node_t * node, int a, int q, int b) {
     free(node);
 }
 
-int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
+int bkw_lf1(vec_t res, bkw_t * bkw, int l, math_t ** aux) {
     int n, b, d;
     long q;
     size_t i, idx;
     int start, end;
     vec_t ** T;
 
+    /* l == 0 links to LWE oracle */
     if (l == 0) {
         lwe_oracle_calls++;
-        return lwe_oracle(res, bkw.lwe); /* TODO : time when verbose */
+        return lwe_oracle(res, bkw->lwe); /* TODO : time when verbose */
     }
 
     /* for visibility concerns */
-    n = bkw.lwe.n;
-    q = bkw.lwe.q;
-    b = bkw.b;
-    d = bkw.d;
-    T = bkw.tab.first->T;
+    n = bkw->lwe->n;
+    q = bkw->lwe->q;
+    b = bkw->b;
+    d = bkw->d;
+    T = bkw->tab->first->T;
 
+    /* defines bounds between which we check collision */
     start = (l - 1) * b;
-    end   = (l == bkw.a) ? n - d : l * b;
+    end   = l * b;
 
-    while (start >= n) {
-        start -= b;
-    }
+    /* forces ending point not to exceed n - d */
     if (end > n - d) {
         end = n - d;
     }
+    /* forces starting point to be a multiple of b */
+    while (start >= n) {
+        start -= b;
+    }
+
+    /* repeats infinitely */
     while (1) {
         /* samples from previous layer */
-        if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {
-            return 0; /* false */
-        }
+        do {
+            if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {
+                return 0; /* false */
+            }
+        } while(zero(aux[0], 0, n));
 
         /* if first elements already 0, returns it */
         if (zero(aux[0], start, end)) {
@@ -153,6 +166,7 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
         }
 
         /* otherwise, stores it, and repeat */
+        mem_used++;
         T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
         for (i = 0; i < n + 1; ++i) {
             T[l-1][idx][i] = aux[0][i];
@@ -161,9 +175,10 @@ int bkw_lf1(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     return 0; /* should not happen */
 }
 
-int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
-    size_t i, idx, n_idx;
-    int layer, n, b; /*, d; */
+int bkw_lf2(vec_t res, bkw_t * bkw, int l, math_t ** aux) {
+    int i, idx, n_idx;
+    int layer, n, b, d;
+    int start, end;
     long q;
     table_t * tab;
     node_t * current;
@@ -171,25 +186,45 @@ int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     vec_t ** T;
     vec_t sample;
 
-    /* if call to lwe_oracle */
+    /* l == 0 links to LWE oracle */
     if (l == 0) {
-        return lwe_oracle(res, bkw.lwe);
+        lwe_oracle_calls++;
+        return lwe_oracle(res, bkw->lwe);
     }
 
     /* for visibility concerns */
-    tab = &(bkw.tab);
-    n = bkw.lwe.n;
-    q = bkw.lwe.q;
-    b = bkw.b;
-    /* d = bkw.d; *//* TODO d reduction */
+    tab = bkw->tab;
+    n = bkw->lwe->n;
+    q = bkw->lwe->q;
+    b = bkw->b;
+    d = bkw->d;
+
+    /* defines bounds between which we check collision */
+    start = (l - 1) * b;
+    end   = l * b;
+
+    /* forces ending point not to exceed n - d */
+    if (end > n - d) {
+        end = n - d;
+    }
+    /* forces starting point to be a multiple of b */
+    while (start >= end) {
+        start -= b;
+    }
+
+    for (i = l-1; i >= 0; --i) {
+        printf("\t");
+    }
+    printf("{%i -> %i}\n", start, end);
 
     /* finds layer at which the last sample was output */
-    sample = tab->sample[l];
+    sample = tab->sample[l-1];
     current = tab->first;
     next = current;
-    if (tab->states[l] != -1) {
+    layer = -1;
+    if (tab->states[l-1] != -1) {
         layer = 0;
-        while (layer != tab->states[l]) {
+        while (layer != tab->states[l-1] && current->next != NULL) {
             current = current->next;
             layer++;
         }
@@ -197,16 +232,38 @@ int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
     }
 
     /* if next layer exists, checks if sample still collides there */
-    if (sample != NULL && next != NULL) {
+    if (layer != -1 && sample != NULL && next != NULL) {
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
+        }
+        printf("[l = %i] current sample : [ ", l);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", sample[i]);
+        }
+        printf("] at state : %i\n", tab->states[l-1]);
         T = next->T;
-        (tab->states[l])++;
+        (tab->states[l-1])++;
 
         /* checks if collision */
-        idx = index(sample, q, (l - 1) * b, l * b);
-        if (T[l][idx] != NULL) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = (sample[i] + q - T[l][idx][i]) % q;
+        idx = index(sample, q, start, end);
+        if (T[l-1][idx] != NULL) {
+            for (i = l-1; i >= 0; --i) {
+                printf("\t");
             }
+            printf("[l = %i] positive collision found (layer %i) : [ ", l, layer);
+            for (i = 0; i < n + 1; ++i) {
+                res[i] = (sample[i] + q - T[l-1][idx][i]) % q;
+                printf("%lu ", aux[0][i]);
+            }
+            printf("] - [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", T[l-1][idx][i]);
+            }
+            printf("] = [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", res[i]);
+            }
+            printf("]\n\n");
             return 1; /* true */
         }
 
@@ -216,64 +273,131 @@ int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
         }
 
         /* checks if collision */
-        n_idx = index(aux[0], q, (l - 1) * b, l * b);
-        if (T[l][n_idx] != NULL) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = (aux[0][i] + q - T[l][n_idx][i]) % q;
+        n_idx = index(aux[0], q, start, end);
+        if (T[l-1][n_idx] != NULL) {
+            for (i = l-1; i >= 0; --i) {
+                printf("\t");
             }
+            printf("[l = %i] negative collision found (layer %i) : [ ", l, layer);
+            for (i = 0; i < n + 1; ++i) {
+                res[i] = (aux[0][i] + q - T[l-1][n_idx][i]) % q;
+                printf("%lu ", aux[0][i]);
+            }
+            printf("] - [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", T[l-1][n_idx][i]);
+            }
+            printf("] = [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", res[i]);
+            }
+            printf("]\n\n");
             return 1; /* true */
         }
 
         /* otherwise, stores it */
-        T[l][idx] = malloc((n + 1) * sizeof(math_t));
-        for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i] = sample[i];
+        mem_used++;
+        T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
         }
+        printf("[l = %i] storing sample (layer %i) [ ", l, layer);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", sample[i]);
+            T[l-1][idx][i] = sample[i];
+        }
+        printf("]\n");
     }
     /* otherwise, if not first call, creates new layer and puts sample in it */
-    else if (sample != NULL) {
+    else if (layer != -1 && sample != NULL) {
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
+        }
+        printf("[l = %i] current sample : [ ", l);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", sample[i]);
+        }
+        printf("] at state : %i\n", tab->states[l-1]);
         current->next = malloc(sizeof(node_t));
-        bkw_create_node(current->next, n/b, q, b);
+        bkw_create_node(current->next, bkw->a, q, b);
         T = current->next->T;
 
         /* stores sample */
-        idx = index(sample, q, (l - 1) * b, l * b);
-        T[l][idx] = malloc((n + 1) * sizeof(math_t));
-        for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i] = sample[i];
+        idx = index(sample, q, start, end);
+        mem_used++;
+        T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
         }
+        printf("[l = %i] creating layer %i to store : [ ", l, layer);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", sample[i]);
+            T[l-1][idx][i] = sample[i];
+        }
+        printf("]\n");
     }
     /* upon first call */
-    else {
-        tab->sample[l] = malloc((n + 1) * sizeof(math_t));
-        sample = tab->sample[l];
+    else if (layer != -1) {
+        tab->sample[l-1] = calloc(n + 1, sizeof(math_t));
+        sample = tab->sample[l-1];
     }
 
+    /* repeats infinitely */
     T = tab->first->T;
-    tab->states[l] = 0;
+    tab->states[l-1] = 0;
     while (1) {
-        /* samples from previous layer */
-        if (!bkw_lf2(aux[0], bkw, l - 1, aux + 1)) {
-            return 0; /* false */
+        /* samples non-zero vector from previous layer */
+        do {
+            if (!bkw_lf2(aux[0], bkw, l - 1, aux + 1)) {
+                return 0; /* false */
+            }
+        } while (zero(aux[0], 0, n));
+
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
         }
+        printf("[l = %i] collect : [ ", l);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", aux[0][i]);
+        }
+        printf("]\n");
 
         /* if first elements already 0, returns it */
-        if (zero(aux[0], (l - 1) * b, l * b)) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = aux[0][i];
-                sample[i] = aux[0][i];
+        if (zero(aux[0], start, end)) {
+            for (i = l-1; i >= 0; --i) {
+                printf("\t");
             }
-            tab->states[l] = -1;
+            printf("[l = %i] all-zero (main) : res = [ ", l);
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", aux[0][i]);
+                res[i] = aux[0][i];
+            }
+            printf("]\n\n");
+            tab->states[l-1] = -1;
             return 1; /* true */
         }
 
         /* checks if collision */
-        idx = index(aux[0], q, (l - 1) * b, l * b);
-        if (T[l][idx] != NULL) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = (aux[0][i] + q - T[l][idx][i]) % q;
-                sample[i] = aux[0][i];
+        idx = index(aux[0], q, start, end);
+        if (T[l-1][idx] != NULL) {
+            for (i = l-1; i >= 0; --i) {
+                printf("\t");
             }
+            printf("[l = %i] positive collision (main) : [ ", l);
+            for (i = 0; i < n + 1; ++i) {
+                res[i] = (aux[0][i] + q - T[l-1][idx][i]) % q;
+                sample[i] = aux[0][i];
+                printf("%lu ", aux[0][i]);
+            }
+            printf("] - [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", T[l-1][idx][i]);
+            }
+            printf("] = [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", res[i]);
+            }
+            printf("]\n\n");
             return 1; /* true */
         }
 
@@ -283,40 +407,61 @@ int bkw_lf2(vec_t res, bkw_t bkw, int l, math_t ** aux) {
         }
 
         /* checks if collision */
-        n_idx = index(aux[0], q, (l - 1) * b, l * b);
-        if (T[l][n_idx] != NULL) {
-            for (i = 0; i < n + 1; ++i) {
-                res[i] = (aux[0][i] + q - T[l][n_idx][i]) % q;
-                sample[i] = aux[0][i];
+        n_idx = index(aux[0], q, start, end);
+        if (T[l-1][n_idx] != NULL) {
+            for (i = l-1; i >= 0; --i) {
+                printf("\t");
             }
+            printf("[l = %i] negative collision (main) : [ ", l);
+            for (i = 0; i < n + 1; ++i) {
+                res[i] = (aux[0][i] + q - T[l-1][n_idx][i]) % q;
+                sample[i] = (q - aux[0][i]) % q;
+                printf("%lu ", aux[0][i]);
+            }
+            printf("] - [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", T[l-1][n_idx][i]);
+            }
+            printf("] = [ ");
+            for (i = 0; i < n + 1; ++i) {
+                printf("%lu ", res[i]);
+            }
+            printf("]\n\n");
             return 1; /* true */
         }
 
-        /* otherwise, stores it, and repeat */
-        T[l][idx] = malloc((n + 1) * sizeof(math_t));
-        for (i = 0; i < n + 1; ++i) {
-            T[l][idx][i] = (q - aux[0][i]) % q;
+        /* otherwise, stores it, and repeats */
+        mem_used++;
+        T[l-1][idx] = malloc((n + 1) * sizeof(math_t));
+        for (i = l-1; i >= 0; --i) {
+            printf("\t");
         }
+        printf("[l = %i] storing sample (main) [ ", l);
+        for (i = 0; i < n + 1; ++i) {
+            printf("%lu ", (q - aux[0][i]) % q);
+            T[l-1][idx][i] = (q - aux[0][i]) % q;
+        }
+        printf("]\n");
     }
     return 0;
 }
 
-void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux) {
+void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t * bkw, math_t ** aux) {
     int i, d, m;
     long q;
     size_t j;
     double p, best, current;
 
     /* for visibility concerns */
-    q = bkw.lwe.q;
-    d = bkw.d + 1;
-    m = bkw.m;
+    q = bkw->lwe->q;
+    d = bkw->d + 1;
+    m = bkw->m;
 
     /* precomputes each value of log(j) */
     if (log_j == NULL) {
         log_j = malloc(q * sizeof(double));
         for (i = 0; i < q; ++i) {
-            p = distributions[bkw.lwe.distrib](i > q/2 ? i - q : i, bkw.lwe.sig, q);
+            p = distributions[bkw->lwe->distrib](i > q/2 ? i - q : i, bkw->lwe->sig, bkw->a, q);
             log_j[i] = log(p) - log((pow(q, d-2) - p)/(double)(pow(q, d-1) - 1.0));
             log_j[i] = log_j[i] / log(2.0);
         }
@@ -365,7 +510,7 @@ void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t bkw, math_t ** aux) {
     }
 }
 
-void bkw_fft(vec_t v, vec_t * F, bkw_t bkw) {
+void bkw_fft(vec_t v, vec_t * F, bkw_t * bkw) {
     size_t i, j, idx, size;
     long q;
     double best;
@@ -375,9 +520,9 @@ void bkw_fft(vec_t v, vec_t * F, bkw_t bkw) {
     fftw_plan plan_forward;
 
     /* for visibility concerns */
-    q = bkw.lwe.q;
-    d = bkw.d + 1;
-    m = bkw.m;
+    q = bkw->lwe->q;
+    d = bkw->d + 1;
+    m = bkw->m;
 
     /* creates the input array */
     n = malloc((d - 1) * sizeof(int));
