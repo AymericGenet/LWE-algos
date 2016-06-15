@@ -12,9 +12,9 @@ Configuration
 
 The project works with the following versions of the tools :
 
-    * gcc (GCC) 4.8.1
-    * GNU Make 3.81
-    * FFTW 3.3.4
+* gcc (GCC) 4.8.1
+* GNU Make 3.81
+* FFTW 3.3.4
 
 How to launch
 =============
@@ -54,21 +54,16 @@ References
 
 In this project, we make use of the following source code :
 
-    * JTN002 - MinUnit -- a minimal unit testing framework for C :
-        http://www.jera.com/techinfo/jtns/jtn002.html
-    * benchmarking - How can I benchmark C code easily? - Stack Overflow :
-        http://stackoverflow.com/questions/2349776/how-can-i-benchmark-c-code-easily
-    * Standalone erf function :
-        Abramowitz and Stegun, Handbook of Mathematical Functions, 1965
-    * bkw-lwe :
-        https://bitbucket.org/malb/bkw-lwe/src
+* JTN002 - MinUnit -- a minimal unit testing framework for C : http://www.jera.com/techinfo/jtns/jtn002.html
+* benchmarking - How can I benchmark C code easily? - Stack Overflow : http://stackoverflow.com/questions/2349776/how-can-i-benchmark-c-code-easily
+* Standalone erf function : http://www.johndcook.com/blog/cpp_erf/
+* bkw-lwe : https://bitbucket.org/malb/bkw-lwe/src
 
 We implemented concepts, ideas, and algorithms that come from the following papers :
 
-    * Albrecht, M. et al. 2015. On the complexity of the BKW algorithm
-    * Duc, A. et al.      2015. Better algorithms for LWE and LWR
-                         for Elliptic Curve Cryptosystems
-    * Choi, G. et al.     2016. Study LWE algorithms
+* Albrecht, M. et al. 2015. *On the complexity of the BKW algorithm*
+* Duc, A. et al.      2015. *Better algorithms for LWE and LWR*
+* Choi, G. et al.     2016. *Study LWE algorithms*
 
 
 
@@ -82,8 +77,8 @@ Future work
 Contact
 =======
 
-Author :    Aymeric Genet <aymeric {dot} genet {at} epfl {dot} ch>
-Supervisor: Sonia Mihaela bogos <soniamihaela {dot} bogos {at} epfl {dot} ch>
+Author : Aymeric Genet <aymeric {dot} genet {at} epfl {dot} ch>
+Supervisor: Sonia Mihaela Bogos <soniamihaela {dot} bogos {at} epfl {dot} ch>
 Professor:  Serge Vaudenay <serge {dot} vaudenay {at} epfl {dot} ch>
 
 
