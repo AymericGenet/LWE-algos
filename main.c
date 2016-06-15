@@ -14,6 +14,8 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#include <unistd.h>
+#include <getopt.h>
 
 
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
@@ -46,50 +48,90 @@ int main(int argc, char *argv[]) {
     lwe_t * lwe;
     bkw_t * bkw;
     node_t * curr;
-
-    distrib = rounded_gaussian;
-    if (argc >= 5) {
-        idx = atoi(argv[1]);
-        m = atoi(argv[2]);
-        MAX_RANGE = atoi(argv[3]);
-
-        switch (atoi(argv[4])) {
-        case 2:
-            distrib = uniform;
-            break;
-
-        case 1:
-            distrib = discrete_gaussian;
-            break;
-
-        case 0:
-        default:
-            distrib = rounded_gaussian;
-        }
-    }
-
-    init_random("/dev/random");
+    char c;
+    int verbose = 0;
+    int failure = 0;
+    int sample_reduc = 0, hypo_test = 0;
 
     /* ================================ DATA ================================ */
-    n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
-    /*n = 6, q = 13, a = 2, b = 3, d = 1;*/
+    distrib = rounded_gaussian;
+    while ((c = getopt(argc, argv, "i:n:q:a:m:r:d:h:s:v")) != -1)
+        switch (c) {
+        case 'v':
+            verbose = 1;
+            break;
+        case 's':
+            sample_reduc = atoi(optarg);
+            break;
+        case 'h':
+            hypo_test = atoi(optarg);
+            break;
+        case 'i':
+            idx = atoi(optarg);
+            n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
+            break;
+        case 'n':
+            n = atoi(optarg);
+            break;
+        case 'q':
+            q = atoi(optarg);
+            break;
+        case 'a':
+            a = atoi(optarg);
+            break;
+        case 'm':
+            m = atoi(optarg);
+            break;
+        case 'r':
+            MAX_RANGE = atoi(optarg);
+            break;
+        case 'd':
+            switch (atoi(optarg)) {
+            case 2:
+                distrib = uniform;
+                break;
+
+            case 1:
+                distrib = discrete_gaussian;
+                break;
+
+            case 0:
+            default:
+                distrib = rounded_gaussian;
+            }
+            break;
+        default:
+            exit(1);
+    }
+
+    /* checks feasibility of the instance */
     depth = (unsigned long) pow(q, b);
     if (pow(q, b) - depth != 0) {
         fprintf(stderr, "main: depth overflow\n");
         exit(1);
     }
+    init_random("/dev/urandom");
 
     for (k = 0; k < MAX_RANGE; ++k) {
         /* ============================== INIT ============================== */
         F = malloc(m * sizeof(vec_t));
         res = malloc(m * sizeof(vec_t));
         guess = calloc(d, sizeof(math_t));
-        sec = malloc(n * sizeof(math_t));
+        
         stats = calloc(q, sizeof(int));
-
         aux = malloc(2 * sizeof(math_t **));
         aux[0] = malloc(a * sizeof(math_t *));
         aux[1] = malloc(2 * sizeof(math_t *));
+
+        /* defines secret and sigma in lwe_oracle */
+        sec = malloc(n * sizeof(math_t));
+        for (i = 0; i < n; ++i) {
+            do {
+                read_drandom(&rdm);
+                sec[i] = rdm * (q - 1);
+            } while (sec[i] == 0);
+        }
+        sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n)/log(2) * log(n)/log(2));
 
         for (i = 0; i < a; ++i) {
             aux[0][i] = calloc((n + 1), sizeof(math_t));
@@ -106,15 +148,6 @@ int main(int argc, char *argv[]) {
 
         /* ======================== SAMPLE REDUCTION ======================== */
 
-        /* defines secret and sigma in lwe_oracle */
-        for (i = 0; i < n; ++i) {
-            do {
-                read_drandom(&rdm);
-                sec[i] = rdm * (q - 1);
-            } while (sec[i] == 0);
-        }
-        sigma = ((double) q)/(sqrt(2 * PI_VAL * n) * log(n)/log(2) * log(n)/log(2));
-
         /* creates lwe and bkw struct */
         lwe = malloc(sizeof(lwe_t));
         lwe_create(lwe, n, q, distrib, sigma, sec);
@@ -126,13 +159,16 @@ int main(int argc, char *argv[]) {
         time = clock();
         for (i = 0; i < m; ++i) {
             do {
-                bkw_lf2(res[i], bkw, a - 1, aux[0]);
+                switch (sample_reduc) {
+                    case 1:
+                    bkw_lf2(res[i], bkw, a - 1, aux[0]);
+                    break;
+
+                    case 0:
+                    default:
+                    bkw_lf1(res[i], bkw, a - 1, aux[0]);
+                }
             } while (zero(res[i], 0, n));
-            printf("[ ");
-            for (j = 0; j < n + 1; ++j) {
-                printf("%lu ", res[i][j]);
-            }
-            printf("]\n");
         }
         time = clock() - time;
 
@@ -169,56 +205,82 @@ int main(int argc, char *argv[]) {
         /* ========================== SOLVING PART ========================== */
         /* runs hypothesis testing or FFT */
         time = clock();
-        /*bkw_hypo_testing(guess, F, bkw, aux[1]);*/
-        bkw_fft(guess, F, bkw);
+        switch (hypo_test) {
+            case 1:
+            printf("fft\n");
+            bkw_fft(guess, F, bkw);
+            break;
+
+            case 0:
+            default:
+            bkw_hypo_testing(guess, F, bkw, aux[1]);
+        }
         time = clock() - time;
         sol_sec += time/((double) CLOCKS_PER_SEC);
 
         /* checks correct answer */
         successes++;
+        failure = 0;
         for (i = 0; i < d; ++i) {
             if (guess[i] % q != sec[n - d + i] % q) {
                 successes--;
+                failure = 1;
                 break;
             }
         }
 
-        for (i = 0; i < m; ++i) {
-            noise = res[i][n];
-            for (j = 0; j < n; ++j) {
-                noise = (q*q + noise - res[i][j]*sec[j]) % q;
+        /* on failure, when verbose, prints distributions */
+        if (verbose && failure) {
+            for (i = 0; i < m; ++i) {
+                noise = res[i][n];
+                for (j = 0; j < n; ++j) {
+                    noise = (q*q + noise - res[i][j]*sec[j]) % q;
+                }
+                stats[noise]++;
             }
-            stats[noise]++;
-        }
 
-        /*printf("\n");
-        for (i = 0; i < q; ++i) {
-            printf("%i : \t", i);
-            for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
-                printf("=");
+            /* prints secret */
+            printf("s = [ ");
+            for (i = 0; i < d; ++i) {
+                printf("%lu ", sec[n - d + i]);
             }
-            printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, 1, q));
-            stats[i] = 0;
-        }
-        printf("\n");*/
+            printf("] noise : \n");
 
-        for (i = 0; i < m; ++i) {
-            noise = res[i][n];
-            for (j = n - d; j < n; ++j) {
-                noise = (q*q + noise - res[i][j]*guess[j - (n - d)]) % q;
+            for (i = 0; i < q; ++i) {
+                printf("%i : \t", i);
+                for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
+                    printf("=");
+                }
+                printf(" (%f vs %f)\n", stats[i]/((double) m), distributions[distrib](i, sigma, a, q));
+                stats[i] = 0;
             }
-            stats[noise]++;
-        }
+            printf("\n");
 
-        /*printf("\n");
-        for (i = 0; i < q; ++i) {
-            printf("%i : \t", i);
-            for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
-                printf("=");
+            for (i = 0; i < m; ++i) {
+                noise = res[i][n];
+                for (j = n - d; j < n; ++j) {
+                    noise = (q*q + noise - res[i][j]*guess[j - (n - d)]) % q;
+                }
+                stats[noise]++;
             }
-            printf(" (%f vs %f)\n", stats[i]/((double) m), rounded_gaussian_pdf(i, sqrt(pow(2, a-2)) * sigma, 1, q));
+
+            /* prints guess */
+            printf("v = [ ");
+            for (i = 0; i < d; ++i) {
+                printf("%lu ", guess[i]);
+            }
+            printf("] noise : \n");
+
+            for (i = 0; i < q; ++i) {
+                printf("%i : \t", i);
+                for (j = 0; j < 100.0*stats[i]/((double)m); ++j) {
+                    printf("=");
+                }
+                printf(" (%f vs %f)\n", stats[i]/((double) m), distributions[distrib](i, sigma, a, q));
+                stats[i] = 0;
+            }
+            printf("\n");
         }
-        printf("\n");*/
 
 
         /* =============================== END ============================== */
@@ -243,17 +305,18 @@ int main(int argc, char *argv[]) {
         free(aux[1]);
         free(aux);
 
-        free(sec);
+        free(stats);
         free(guess);
         free(res);
+        free(sec);
         free(F);
     }
 
-    printf("For m = %i, n = %i, we have :\n\n", m, n);
+    printf("For m = %i, n = %i, a = %i, we have :\n\n", m, n, a);
     printf("\t# of successes : %i / %i\n", successes, MAX_RANGE);
 
-    printf("\n\taverage time for collecting samples   : %f s", lf1_sec / MAX_RANGE);
-    printf("\n\taverage time for solving part         : %f s", sol_sec / MAX_RANGE);
+    printf("\n\taverage time for %s   : %f s", (sample_reduc == 1) ? "LF2" : "LF1", lf1_sec / MAX_RANGE);
+    printf("\n\taverage time for %s   : %f s", (hypo_test == 1) ? "FFT" : "L-L", sol_sec / MAX_RANGE);
 
     printf("\n");
 
