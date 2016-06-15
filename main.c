@@ -20,7 +20,7 @@
 
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
 int qs[] = {37, 53, 67, 83, 101, 127, 149};
-int as[] = {5, 6, 7, 8, 9, 10, 11};
+int as[] = {5, 6, 7, 8, 9, 9, 10};
 int bs[] = {1, 1, 1, 1, 1, 1, 1};
 
 int idx = 0; /* from 0 to 8 */
@@ -30,7 +30,7 @@ int MAX_RANGE = 1000;
 int main(int argc, char *argv[]) {
     int * stats;
     long noise;
-    size_t i, j, k;
+    int i, j, k;
     clock_t time;
     int n, b, a, d;
     int successes = 0;

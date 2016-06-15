@@ -15,7 +15,7 @@
 
 
 void bkw_mem_create(bkw_mem_t * bkw, lwe_t lwe, int a, int d, int m) {
-    size_t i;
+    int i;
     char path[128];
 
     bkw->lwe = lwe;
