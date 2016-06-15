@@ -12,6 +12,9 @@
 
 #define PI_VAL 3.14159265358979323846
 
+/* Bounds for wrapping the Gaussian random variable around Z_q */
+#define GAUSSIAN_BOUND 10
+
 /* Represents an element of Z_q */
 typedef unsigned long math_t;
 
@@ -27,8 +30,17 @@ typedef enum {
     uniform
 } distribution_t;
 
+/* Access to distributions pdf according to distribution_t */
 extern double (*distributions[DISTRIB_NUMBER])(long, double, int, long);
 
+/*
+ * Draws a random sample according to the rejection sampling method.
+ *
+ * @param distrib Distribution according to which it will sample
+ * @param sigma The corresponding standard deviation of the distribution
+ * @param q The modulus of the ring Z_q
+ * @return A sample x drawn at random according to distrib.
+ */
 
 long random_sample(distribution_t distrib, double sigma, long q);
 
@@ -116,6 +128,17 @@ void unindex(vec_t res, size_t idx, long q, int a, int b);
  */
 
 int zero(vec_t elem, int a, int b);
+
+/*
+ * Checks that the vector u is the same as the vector v between a and b.
+ *
+ * @param u The first vector to be checked
+ * @param v The second vector to be checked
+ * @param a Starting index
+ * @param b Ending index
+ * @return 1 (true) if the vectors elements are the same between [a, b], 0
+ *         (false) otherwise
+ */
 
 int equals(vec_t u, vec_t v, int a, int b);
 

@@ -9,13 +9,17 @@
 #define BKW_MEM_TEST_NAME "bkw_mem"
 
 
+/*
+ * Tests bkw_mem.bkw_lf1()
+ */
+
 char * test_bkw_mem_lf1();
 
+/*
+ * Tests bkw_mem.bkw_lf2()
+ */
+
 char * test_bkw_mem_lf2();
-
-char * test_bkw_mem_hypo_testing();
-
-char * test_bkw_mem_fft();
 
 /*
  *  Gathers all tests in one function.

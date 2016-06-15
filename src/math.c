@@ -7,12 +7,9 @@
 
 #include "math.h"
 #include "misc.h"
+
 #include <math.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <float.h>
-#include <stdio.h>
 
 double (*distributions[DISTRIB_NUMBER])(long, double, int, long) = {
     discrete_gaussian_pdf, rounded_gaussian_pdf, uniform_pdf };
@@ -24,7 +21,7 @@ long random_sample(distribution_t distrib, double sigma, long q) {
     double (*pdf)(long x, double sigma, int n, long q);
 
     pdf = distributions[distrib];
-    M = pdf(0, sigma, 1, q);
+    M = pdf(0, sigma, 1, q); /* we suppose this is the max value */
     do {
         read_drandom(&u);
         x = u * q;
@@ -56,13 +53,13 @@ double rounded_gaussian_cdf(double x, double sigma) {
 
 double rounded_gaussian_pdf(long x, double sigma, int n, long q) {
     double result;
-    int i, k = 10; /* FIXME */
+    int i;
 
     if (n > 2) {
         sigma *= sqrt(pow(2, n-2));
     }
     result = 0.0;
-    for (i = -k; i <= k; ++i) {
+    for (i = -GAUSSIAN_BOUND; i <= GAUSSIAN_BOUND; ++i) {
         result += rounded_gaussian_cdf(q*i + x + 0.5, sigma);
         result -= rounded_gaussian_cdf(q*i + x - 0.5, sigma);
     }

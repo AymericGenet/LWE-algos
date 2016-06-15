@@ -17,12 +17,15 @@
 #include "math.h"
 #include "fftw3.h"
 
-/* Linked-list node of tables T[a][q^b - 1] */
-typedef struct node_t node_t;
 
+/* Amount of LWE oracle calls */
 extern unsigned long lwe_oracle_calls;
+
+/* Quantity of sample stored */
 extern unsigned long mem_used;
 
+/* Linked-list node of tables T[a][q^b - 1] */
+typedef struct node_t node_t;
 struct node_t {
     node_t * next;
     vec_t ** T;
@@ -49,11 +52,46 @@ typedef struct {
     table_t * tab;
 } bkw_t;
 
+/*
+ * Creates a BKW instance.
+ *
+ * @param bkw The created BKW instance
+ * @param lwe The LWE instance to be solved
+ * @param a The addition depth
+ * @param b The window width
+ * @param d The last coordinates
+ * @param m The amount of reduced samples
+ */
+
 void bkw_create(bkw_t * bkw, lwe_t * lwe, int a, int b, int d, long m);
+
+/*
+ * Frees memory allocated by an BKW instance.
+ *
+ * @param bkw The BKW instance to be deleted
+ */
 
 void bkw_free(bkw_t * bkw);
 
+/*
+ * Creates a linked-list node.
+ *
+ * @param node The created node
+ * @param a The addition depth
+ * @param q The modulus of the ring Z_q
+ * @param b The window width
+ */
+
 void bkw_create_node(node_t * node, int a, long q, int b);
+
+/*
+ * Recursively frees memory allocated by a linked-list node.
+ *
+ * @param node The created node
+ * @param a The addition depth
+ * @param q The modulus of the ring Z_q
+ * @param b The window width
+ */
 
 void bkw_free_node(node_t * node, int a, int q, int b);
 
@@ -67,10 +105,13 @@ void bkw_free_node(node_t * node, int a, int q, int b);
  * checks for a collision with the negation of the sample, but only stores one
  * of the two.
  *
- * Returns 1 (true) if LF1 could sample from the oracle, 0 (false) otherwise. If
- * the function returned 0 (false), the sample in res should be discarded.
- *
- *  Minimum size for auxiliary variable : [l] x [n + 1]
+ * @param res The resulting reduced sample
+ * @param bkw The corresponding BKW instance
+ * @param l The layer called
+ * @param aux Pre-allocated auxiliary data of size [l] x [n + 1]
+ * @return 1 (true) if LF1 could sample from the oracle, 0 (false) otherwise.
+ *         If the function returned 0 (false), the sample in res should be
+ *         discarded.
  */
 
 int bkw_lf1(vec_t res, bkw_t * bkw, int l, math_t ** aux);
@@ -83,41 +124,46 @@ int bkw_lf1(vec_t res, bkw_t * bkw, int l, math_t ** aux);
  * stored in the table T. It makes use of the linked-list structure table_t to
  * append such new sample. 
  *
- * Returns 1 (true) if LF2 could sample from the oracle, 0 (false) otherwise. If
- * the function returned 0 (false), the sample in res should be discarded.
- *
- *  Minimum size for auxiliary variable : [l] x [n + 1]
+ * @param res The resulting reduced sample
+ * @param bkw The corresponding BKW instance
+ * @param l The layer called
+ * @param aux Pre-allocated auxiliary data of size [l] x [n + 1]
+ * @return 1 (true) if LF1 could sample from the oracle, 0 (false) otherwise.
+ *         If the function returned 0 (false), the sample in res should be
+ *         discarded.
  */
 
 int bkw_lf2(vec_t res, bkw_t * bkw, int l, math_t ** aux);
 
 /*
- * Computes the score of every possible vector v in Z_q^b.
+ * Solves an LWE instance with hypothesis testing with log-likelihood.
  * 
  * The function starts by precomputing the logarithm of every possible noise
  * value. It then proceeds by iterating over all v, starting with
  * v = (1 0 0 0 ...), and computes the value of the scalar product by adding
- * components one by one. Finally, it puts the score of every corresponding
- * vector in the table S.
+ * components one by one. Finally, it looks for the best score, and ouputs the
+ * best guess in v.
  *
- *  Source : Albrecht et al, On the complexity of the BKW algorithm on LWE, 2012
- *
- *  Minimum size for auxiliary variable : [2] x [...]
- *    - aux[0] : [m]
- *    - aux[1] : [d - 1]
+ * @param v The best guess for the corresponding block of the secret s
+ * @param F An amount of m fully reduced samples (a_j, c_j)
+ * @param bkw The corresponding BKW instance
+ * @param aux Pre-allocated auxiliary data of size [[m], [d-1]]
  */
 
 void bkw_hypo_testing(vec_t v, vec_t * F, bkw_t * bkw, math_t ** aux);
 
 /*
  * Solves an LWE instance with multi-dimensional fast Fourier transforms.
+ *
+ * @param v The best guess for the corresponding block of the secret s
+ * @param F An amount of m fully reduced samples (a_j, c_j)
+ * @param bkw The corresponding BKW instance
  */
 
 void bkw_fft(vec_t v, vec_t * F, bkw_t * bkw);
 
 /*
- * Frees the precomputation of the logarithms in bkw_hypo_testing(). This should
- * be called at the end of an execution and if you care about memory leaks...
+ * Frees the precomputation of the logarithms in bkw_hypo_testing().
  */
 
 void bkw_free_log();

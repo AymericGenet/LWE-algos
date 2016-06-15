@@ -11,12 +11,13 @@
 #include "../src/lwe.h"
 #include "../src/math.h"
 #include "../src/misc.h"
+
 #include <stdio.h>
 #include <math.h>
 
 char * test_bkw_mem_lf1() {
     size_t i, j;
-    int n, a, d, m;
+    int n, a, b, d, m;
     long q;
     vec_t res;
     math_t ** aux;
@@ -27,7 +28,7 @@ char * test_bkw_mem_lf1() {
 
     /* init  */
     m = 1;
-    n = 9, q = 5, d = 3, a = 3;
+    n = 9, q = 5, b = 3, d = 3, a = 3;
 
     secret = malloc(n * sizeof(math_t));
     secret[0] = 1;
@@ -42,7 +43,7 @@ char * test_bkw_mem_lf1() {
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma, secret);
-    bkw_mem_create(&bkw, lwe, a, d, m);
+    bkw_mem_create(&bkw, lwe, a, b, d, m);
 
     res = calloc((n + 1), sizeof(math_t));
     aux = malloc(3*a * sizeof(math_t *));
@@ -109,7 +110,7 @@ char * test_bkw_mem_lf1() {
 
 char * test_bkw_mem_lf2() {
     size_t i, j;
-    int n, a, d, m;
+    int n, a, b, d, m;
     long q;
     vec_t res;
     math_t ** aux;
@@ -120,7 +121,7 @@ char * test_bkw_mem_lf2() {
 
     /* init  */
     m = 1;
-    n = 9, q = 5, d = 3, a = 3;
+    n = 9, q = 5, b = 3, d = 3, a = 3;
 
     secret = malloc(n * sizeof(long));
     secret[0] = 1;
@@ -135,7 +136,7 @@ char * test_bkw_mem_lf2() {
     sigma = q/(sqrt(2 * PI_VAL * n) * log(n) * log(n));
 
     lwe_create(&lwe, n, q, rounded_gaussian, sigma, secret);
-    bkw_mem_create(&bkw, lwe, a, d, m);
+    bkw_mem_create(&bkw, lwe, a, b, d, m);
 
     res = calloc(n + 1, sizeof(math_t));
     aux = malloc(a * sizeof(math_t *));

@@ -9,6 +9,7 @@
 #include "minunit.h"
 #include "../src/lwe.h"
 #include "../src/math.h"
+
 #include <stdio.h>
 #include <math.h>
 

@@ -8,6 +8,7 @@
 #include "bkw.h"
 #include "math.h"
 #include "lwe.h"
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -102,7 +103,7 @@ int bkw_lf1(vec_t res, bkw_t * bkw, int l, math_t ** aux) {
     /* l == 0 links to LWE oracle */
     if (l == 0) {
         lwe_oracle_calls++;
-        return lwe_oracle(res, bkw->lwe); /* TODO : time when verbose */
+        return lwe_oracle(res, bkw->lwe);
     }
 
     /* for visibility concerns */
@@ -132,7 +133,7 @@ int bkw_lf1(vec_t res, bkw_t * bkw, int l, math_t ** aux) {
             if (!bkw_lf1(aux[0], bkw, l - 1, aux + 1)) {
                 return 0; /* false */
             }
-        } while(zero(aux[0], 0, n));
+        } while (zero(aux[0], 0, n));
 
         /* if first elements already 0, returns it */
         if (zero(aux[0], start, end)) {
@@ -463,7 +464,6 @@ void bkw_fft(vec_t v, vec_t * F, bkw_t * bkw) {
     }
 
     /* frees the memory for fft */
-    /* TODO pre-allocate... maybe? */
     free(n);
     fftw_destroy_plan(plan_forward);
     fftw_free(in);

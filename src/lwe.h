@@ -9,9 +9,11 @@
 #ifndef LWE_H_
 #define LWE_H_
 
-#define NOISE_FUNCTION(x, q) rounded_gaussian(x, q)
-
 #include "math.h"
+
+/*
+ * LWE instance data structure.
+ */
 
 typedef struct {
     int n;
@@ -21,19 +23,34 @@ typedef struct {
     vec_t secret;
 } lwe_t;
 
-extern vec_t secret;
-extern double sigma;
-
+/*
+ * Creates an LWE instance.
+ *
+ * @param lwe The created LWE instance
+ * @param n The size of the secret
+ * @param q The modulus of the ring Z_q
+ * @param distrib The noise distribution chi
+ * @param sig The corresponding standard deviation for the noise distribution
+ * @param secret The secret vector
+ */
 
 void lwe_create(lwe_t * lwe, int n, long q, distribution_t distrib, double sig,
                 vec_t secret);
 
+/*
+ * Frees memory allocated by an LWE instance.
+ *
+ * @param lwe The LWE instance to be deleted
+ */
+
 void lwe_free(lwe_t * lwe);
 
 /*
- * Draws a pair (a, c) according to LWE instance.
- * 
- * Returns 1 (true) if query was successful, 0 (false) otherwise.
+ * Draws a pair (a, c) according to a LWE instance.
+ *
+ * @param res The resulting oracle sample
+ * @param lwe The corresponding LWE instance
+ * @return 1 (true) if query was successful, 0 (false) otherwise
  */
 
 int lwe_oracle(vec_t res, lwe_t * lwe);

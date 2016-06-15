@@ -5,12 +5,13 @@
  *      Author: Aymeric Genet
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "src/bkw.h"
 #include "src/math.h"
 #include "src/misc.h"
 #include "src/lwe.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <float.h>
 #include <time.h>
