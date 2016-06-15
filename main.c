@@ -207,7 +207,6 @@ int main(int argc, char *argv[]) {
         time = clock();
         switch (hypo_test) {
             case 1:
-            printf("fft\n");
             bkw_fft(guess, F, bkw);
             break;
 
