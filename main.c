@@ -19,74 +19,120 @@
 #include <getopt.h>
 
 
+/* file used for randomness */
+#define RANDOM_PATH "/dev/urandom"
+
+/* Sizes of instances considered */
 int ns[] = {6, 7, 8, 9, 10, 11, 12};
 int qs[] = {37, 53, 67, 83, 101, 127, 149};
 int as[] = {5, 6, 7, 8, 9, 9, 10};
 int bs[] = {1, 1, 1, 1, 1, 1, 1};
 
 int idx = 0; /* from 0 to 8 */
+
+
+/* Security parameter */
 int m = 15;
-int MAX_RANGE = 1000;
+
+
+void print_help() {
+    printf("\t-n size       size for the secret s (default: 6)\n");
+    printf("\t-q prime      modulus for ring Z_q (default: 37)\n");
+    printf("\t-a depth      oracle depth (default: 5)\n");
+    printf("\t-m samples    gives an amount of samples (default: 15)\n");
+    printf("\n");
+    printf("\t-i index      launches with precomputed parameters chosen by index (default: 0)\n");
+    printf("\n");
+    printf("\t-r range      launches over specified range (default: 1000)\n");
+    printf("\n");
+    printf("\t-x noise      chooses noise distribution (default: 0)\n");
+    printf("\t                0=Rounded Gaussian noise\n");
+    printf("\t                1=Discrete Gaussian noise\n");
+    printf("\t                2=Discrete Uniform noise\n");
+    printf("\t-l algo       chooses sample reduction algorithm (default: 0)\n");
+    printf("\t                0=LF1\n");
+    printf("\t                1=LF2\n");
+    printf("\t-t algo       chooses solving algorithm (default: 0)\n");
+    printf("\t                0=Log-likelihood\n");
+    printf("\t                1=Fast Fourier tranfsorm\n");
+    printf("\n");
+    printf("\t-v            verboses wrong guesses along with extracted noise distribution\n");
+    printf("\n");
+    printf("\t-h            prints this\n");
+}
 
 int main(int argc, char *argv[]) {
-    int * stats;
-    long noise;
-    int i, j, k;
-    clock_t time;
-    int n, b, a, d;
+
+    /* LWE and BKW parameters */
+    int n = 6, b = 1, a = 5, d = 2;
+    long q = 37;
+    double sigma = 1.0;
+    distribution_t distrib = rounded_gaussian;
+
+    /* algorithms parameters */
+    lwe_t * lwe = NULL;
+    bkw_t * bkw = NULL;
+    vec_t sec = NULL;
+    vec_t guess = NULL;
+    vec_t * res = NULL;
+    vec_t * F = NULL;
+    node_t * curr = NULL;
+    math_t *** aux = NULL;
+
+    /* noise extraction in case of failure */
+    int * stats = NULL;
+    long noise  = 0;
+
+    /* benchmarking stats */
+    clock_t time = 0;
+    int range = 1000;
     int successes = 0;
-    long q;
-    unsigned long depth = 0, mem_count = 0;
+    unsigned long mem_count = 0;
     double avg_oracle_calls = 0.0, avg_memory = 0.0;
     double lf1_sec = 0.0, sol_sec = 0.0, rdm = 0.0;
-    double sigma;
-    distribution_t distrib;
-    vec_t guess;
-    vec_t sec;
-    vec_t * res;
-    vec_t * F;
-    math_t *** aux;
-    lwe_t * lwe;
-    bkw_t * bkw;
-    node_t * curr;
-    char c;
+
+    /* arguments handling */
+    char c = '\0';
     int verbose = 0;
     int failure = 0;
     int sample_reduc = 0, hypo_test = 0;
 
-    /* ================================ DATA ================================ */
-    distrib = rounded_gaussian;
-    while ((c = getopt(argc, argv, "i:n:q:a:m:r:d:h:s:v")) != -1)
+    /* miscellaneous */
+    unsigned long depth = 0;
+
+    /* indices */
+    int i = 0, j = 0, k = 0;
+
+    /* ============================== OPTIONS =============================== */
+    while ((c = getopt(argc, argv, "i:n:q:a:m:r:x:t:l:vh")) != -1)
         switch (c) {
-        case 'v':
-            verbose = 1;
-            break;
-        case 's':
-            sample_reduc = atoi(optarg);
-            break;
-        case 'h':
-            hypo_test = atoi(optarg);
-            break;
-        case 'i':
-            idx = atoi(optarg);
-            n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
-            break;
         case 'n':
+            /* chooses n */
             n = atoi(optarg);
             break;
         case 'q':
+            /* chooses q */
             q = atoi(optarg);
             break;
         case 'a':
+            /* chooses a */
             a = atoi(optarg);
             break;
         case 'm':
+            /* chooses m */
             m = atoi(optarg);
             break;
-        case 'r':
-            MAX_RANGE = atoi(optarg);
+        case 'i':
+            /* chooses parameters index */
+            idx = atoi(optarg);
+            n = ns[idx], q = qs[idx], a = as[idx], b = bs[idx], d = n - (a - 1)*b;
             break;
-        case 'd':
+        case 'r':
+            /* chooses range */
+            range = atoi(optarg);
+            break;
+        case 'x':
+            /* chooses noise distribution */
             switch (atoi(optarg)) {
             case 2:
                 distrib = uniform;
@@ -101,7 +147,24 @@ int main(int argc, char *argv[]) {
                 distrib = rounded_gaussian;
             }
             break;
+        case 'l':
+            /* chooses sample reduction algorithm */
+            sample_reduc = atoi(optarg);
+            break;
+        case 't':
+            /* chooses hypothesis testing algorithm */
+            hypo_test = atoi(optarg);
+            break;
+        case 'v':
+            /* enables verbose */
+            verbose = 1;
+            break;
+        case 'h':
         default:
+            /* prints help */
+            printf("Usage : %s [OPTION...]\n", argv[0]);
+            printf("\n");
+            print_help();
             exit(1);
     }
 
@@ -111,9 +174,11 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "main: depth overflow\n");
         exit(1);
     }
-    init_random("/dev/urandom");
 
-    for (k = 0; k < MAX_RANGE; ++k) {
+    /* opens random file */
+    init_random(RANDOM_PATH);
+
+    for (k = 0; k < range; ++k) {
         /* ============================== INIT ============================== */
         F = malloc(m * sizeof(vec_t));
         res = malloc(m * sizeof(vec_t));
@@ -312,11 +377,12 @@ int main(int argc, char *argv[]) {
         free(F);
     }
 
+    /* prints final stats */
     printf("For m = %i, n = %i, a = %i, we have :\n\n", m, n, a);
-    printf("\t# of successes : %i / %i\n", successes, MAX_RANGE);
+    printf("\t# of successes : %i / %i\n", successes, range);
 
-    printf("\n\taverage time for %s   : %f s", (sample_reduc == 1) ? "LF2" : "LF1", lf1_sec / MAX_RANGE);
-    printf("\n\taverage time for %s   : %f s", (hypo_test == 1) ? "FFT" : "L-L", sol_sec / MAX_RANGE);
+    printf("\n\taverage time for %s   : %f s", (sample_reduc == 1) ? "LF2" : "LF1", lf1_sec / range);
+    printf("\n\taverage time for %s   : %f s", (hypo_test == 1) ? "FFT" : "L-L", sol_sec / range);
 
     printf("\n");
 
@@ -324,6 +390,9 @@ int main(int argc, char *argv[]) {
     printf("\n\taverage memory for collecting samples : %f samples", avg_memory);
 
     printf("\n\n");
+
+    /* closes random file */
     close_random();
+
     return 0;
 }

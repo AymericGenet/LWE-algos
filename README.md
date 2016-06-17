@@ -27,25 +27,27 @@ Then launch it with the following parameters :
 
     -n size       size for the secret s (default: 6)
     -q prime      modulus for ring Z_q (default: 37)
-    -m samples    gives an amount of samples (default: 15)
     -a depth      oracle depth (default: 5)
+    -m samples    gives an amount of samples (default: 15)
 
     -i index      launches with precomputed parameters chosen by index (default: 0)
 
     -r range      launches over specified range (default: 1000)
 
-    -d noise      chooses noise distribution (default: 0)
+    -x noise      chooses noise distribution (default: 0)
                     0=Rounded Gaussian noise
                     1=Discrete Gaussian noise
                     2=Discrete Uniform noise
-    -s algo       chooses sample reduction algorithm (default: 0)
+    -l algo       chooses sample reduction algorithm (default: 0)
                     0=LF1
                     1=LF2
-    -h algo       chooses solving algorithm (default: 0)
+    -t algo       chooses solving algorithm (default: 0)
                     0=Log-likelihood
                     1=Fast Fourier tranfsorm
 
     -v            verboses wrong guesses along with extracted noise distribution
+
+    -h            prints this
 
 
 
